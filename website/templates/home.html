@@ -1,0 +1,291 @@
+{% extends "base.html" %} {% block title %}APC Rate Card{% endblock %} {% block content%}
+<!DOCTYPE html>
+<head>
+    <style>
+        .modern-heading {
+            text-align: center;
+            font-family: 'Raleway', sans-serif;
+            font-size: 48px;
+            color: #7dbb5a;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #7dbb5a;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+.form-container {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 80px;
+}
+
+.form-container .form-inputs {
+  flex: 0 0 calc(50% - 20px);
+  margin-right: 20px;
+  background-color: rgba(200, 200, 200, 0.8);
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.form-container .form-results {
+  flex: 0 0 calc(50% - 20px);
+  background-color: rgba(200, 200, 200, 0.8);
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.form-container .form-ratecard {
+  width: 100%;
+  background-color: rgba(200, 200, 200, 0.8);
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.form-container .form-ratecard table {
+  margin: 0 auto;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.form-container .form-ratecard th,
+.form-container .form-ratecard td {
+  padding: 0px;
+  text-align: center;
+}
+
+.form-container .form-ratecard th:not(:first-child),
+.form-container .form-ratecard td:not(:first-child) {
+  width: 15%;
+}
+
+
+    .footer {
+        text-align: center;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 10px;
+        background-color: #f5f5f5;
+    }
+    </style>
+</head>
+
+
+<link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+
+
+<body>
+  <h1 class="modern-heading">APC Rate Card</h1>
+
+  <div class="form-container">
+    <div class="form-inputs">
+      <form method="POST">
+            <label id="recommitLabel">Is this a recommit?</label>
+            <select name="recommit" onchange="toggleDatePicker(this.value)">
+                <option value="N"{% if previous_data.recommit == 'N' %}selected{% endif %}>N</option>
+                <option value="Y"{% if previous_data.recommit == 'Y' %}selected{% endif %}>Y</option>
+            </select>
+<br>
+            <div class="form-group" id="datepickerContainer" style="display: none;">
+                <label>Select a date:</label>
+                <input type="date" name="selected_date" id="selectedDate" {% if previous_data.selected_date %}value="{{ previous_data.selected_date }}" {% endif %}>
+            </div>
+
+            <label>Is this for Scooter's Coffee?</label>
+                <select name="scooters_coffee" onchange="toggleDropdown(this.value, 'bridge_loan')">
+
+                    <option value="N" {% if previous_data.userselection_scooters == 'N' %}selected{% endif %}>N</option>
+                    <option value="Y" {% if previous_data.userselection_scooters == 'Y' %}selected{% endif %}>Y</option>
+                </select>
+<br>
+                <label>Bridge Loan</label>
+                <select name="bridge_loan" onchange="toggleDropdown(this.value, 'scooters_coffee')">
+                    <option value="N" {% if previous_data.userselection_bridge_loan == 'N' %}selected{% endif %}>N</option>
+                    <option value="Y" {% if previous_data.userselection_bridge_loan == 'Y' %}selected{% endif %}>Y</option>
+
+                </select>
+<br>
+                <label>Rate Type</label>
+                <select name="rate_type">
+                    <option value="Fixed" {% if previous_data.userselection_ratetype == 'Fixed' %}selected{% endif %}>Fixed</option>
+                </select>
+<br>
+                <label>Select Term</label>
+                <select name="term">
+                    <option value="Make Selection" {% if previous_data.userselection_term == 'Make Selection' %}selected{% endif %}>Make Selection</option>
+                    <option value="60/60" {% if previous_data.userselection_term == '60/60' %}selected{% endif %}>60/60</option>
+                    <option value="60/84" {% if previous_data.userselection_term == '60/84' %}selected{% endif %}>60/84</option>
+                    <option value="84/84" {% if previous_data.userselection_term == '84/84' %}selected{% endif %}>84/84</option>
+                    <option value="84/120" {% if previous_data.userselection_term == '84/120' %}selected{% endif %}>84/120</option>
+                    <option value="120/120" {% if previous_data.userselection_term == '120/120' %}selected{% endif %}>120/120</option>
+                </select>
+<br>
+                <label>Select Embedded Fee</label>
+                <select name="embedded_fee">
+                    <option value="Make Selection" {% if previous_data.userselection_fee == 'Make Selection' %}selected{% endif %}>Make Selection</option>
+                    <option value="0.00%" {% if previous_data.userselection_fee == '0.00%' %}selected{% endif %}>0.00%</option>
+                    <option value="0.50%" {% if previous_data.userselection_fee == '0.50%' %}selected{% endif %}>0.50%</option>
+                    <option value="1.00%" {% if previous_data.userselection_fee == '1.00%' %}selected{% endif %}>1.00%</option>
+                    <option value="1.50%" {% if previous_data.userselection_fee == '1.50%' %}selected{% endif %}>1.50%</option>
+                    <option value="2.00%" {% if previous_data.userselection_fee == '2.00%' %}selected{% endif %}>2.00%</option>
+                    <option value="2.50%" {% if previous_data.userselection_fee == '2.50%' %}selected{% endif %}>2.50%</option>
+                    <option value="3.00%" {% if previous_data.userselection_fee == '3.00%' %}selected{% endif %}>3.00%</option>
+                    <option value="3.50%" {% if previous_data.userselection_fee == '3.50%' %}selected{% endif %}>3.50%</option>
+                    <option value="4.00%" {% if previous_data.userselection_fee == '4.00%' %}selected{% endif %}>4.00%</option>
+                    <option value="4.50%" {% if previous_data.userselection_fee == '4.50%' %}selected{% endif %}>4.50%</option>
+                    <option value="5.00%" {% if previous_data.userselection_fee == '5.00%' %}selected{% endif %}>5.00%</option>
+                </select>
+<br>
+
+                <label>Select Investment Grade</label>
+                <select name="investment_grade">
+                    <option value="Make Selection" {% if previous_data.userselection_grade == 'Make Selection' %}selected{% endif %}>Make Selection</option>
+                    <option value="AA" {% if previous_data.userselection_grade == 'AA' %}selected{% endif %}>AA</option>
+                    <option value="A" {% if previous_data.userselection_grade == 'A' %}selected{% endif %}>A</option>
+                    <option value="B" {% if previous_data.userselection_grade == 'B' %}selected{% endif %}>B</option>
+                    <option value="C" {% if previous_data.userselection_grade == 'C' %}selected{% endif %}>C</option>
+                    <option value="D" {% if previous_data.userselection_grade == 'D' %}selected{% endif %}>D</option>
+                    <option value="E" {% if previous_data.userselection_grade == 'E' %}selected{% endif %}>E</option>
+                </select>
+<br>
+                <label>Select Pricing Basis</label>
+                <select name="pricing_basis">
+                    <option value="Make Selection" {% if previous_data.userselection_pricing == 'Make Selection' %}selected{% endif %}>Make Selection</option>
+                    <option value="Cash Flow" {% if previous_data.userselection_pricing == 'Cash Flow' %}selected{% endif %}>Cash Flow</option>
+                    <option value="Pro Forma" {% if previous_data.userselection_pricing == 'Pro Forma' %}selected{% endif %}>Pro Forma</option>
+                </select>
+<br>
+                <label>Down Payment less than 20%</label>
+                <select name="down_payment">
+                    <option value="Make Selection" {% if previous_data.userselection_dp == 'Make Selection' %}selected{% endif %}>Make Selection</option>
+                    <option value="Y" {% if previous_data.userselection_dp == 'Y' %}selected{% endif %}>Y</option>
+                    <option value="N" {% if previous_data.userselection_dp == 'N' %}selected{% endif %}>N</option>
+                </select>
+
+
+
+ <br>
+        <br>
+        <input type="submit" name='submit' value="Submit" onclick="submitForm()" style="font-size: 20px;">
+        <input type="submit" name='clear' value="Clear" style="font-size: 20px;">
+      </form>
+
+
+    </div>
+      <script>
+    function toggleDropdown(value, dropdownName) {
+        var dropdown = document.querySelector('select[name="' + dropdownName + '"]');
+
+        if (value === 'Y') {
+            dropdown.disabled = true;
+            dropdown.value = 'Make Selection';
+        } else {
+            dropdown.disabled = false;
+        }
+    }
+</script>
+
+    <script>
+    var recommitLabel = document.getElementById("recommitLabel");
+    var datepickerContainer = document.getElementById("datepickerContainer");
+
+    function toggleDatePicker(value) {
+        if (value === "Y") {
+            datepickerContainer.style.display = "block";
+            recommitLabel.textContent = "Is this a recommit?";
+        } else {
+            datepickerContainer.style.display = "none";
+            recommitLabel.textContent = "Is this a recommit?";
+        }
+
+
+        localStorage.setItem("recommitOption", value);
+    }
+
+
+    var recommitOption = localStorage.getItem("recommitOption");
+
+    if (recommitOption) {
+        document.querySelector(`select[name="recommit"] option[value="${recommitOption}"]`).selected = true;
+        toggleDatePicker(recommitOption);
+    }
+</script>
+
+
+    <div class="form-results">
+      <h2>Results</h2>
+
+      <label>Index Rate Used: {{ results.index_rate_used }}</label>
+   <br>
+<label>Rate Card Used:{{ results.rate_card_used }}</label>
+   <br>
+<label>Interest Rate:{{ results.final_rate }}</label>
+   <br>
+<label>Spread Rate:{{ results.spread_rate }}</label>
+   <br>
+<label>Index Rate:{{ results.index_rate }}</label>
+   <br>
+<label>Index Rate Date:{{ results.index_rate_date }}</label>
+   <br>
+<label>Rate Type: {{ results.rate_type}}</label>
+   <br>
+<h4>Loan Buyer Break Down</h4>
+<label>Spread Rate:{{ results.loan_buyer_spread }}</label>
+   <br>
+<label>Embedded Premium:{{ results.loan_buyer_fee }}</label>
+   <br>
+<label>Down Payment Premium: {{ results.loan_buyer_dp}}</label>
+   <br>
+
+    </div>
+
+<div class="form-ratecard">
+  <h2>Rate Card</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Month</th>
+        <th>APC Grade</th>
+          <th>60/60</th>
+          <th>60/84</th>
+          <th>84/84</th>
+          <th>84/120</th>
+          <th>120/120</th>
+
+      </tr>
+    </thead>
+    <tbody>
+{% for index, row in rate_card_table.iterrows() %}
+      <tr>
+        <td>{{ row['Month'] }}</td>
+        <td>{{ row['APC Grade'] }}</td>
+        <td>{{ row['60/60'] }}</td>
+        <td>{{ row['60/84'] }}</td>
+        <td>{{ row['84/84'] }}</td>
+        <td>{{ row['84/120'] }}</td>
+        <td>{{ row['120/120'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+  </div>
+
+
+
+    <div class="footer">
+        Created and Managed by Tyler Yahnke and Joel Fuentes
+        <br>
+        Version 3.0
+    </div>
+
+
+
+</body>
+</html>
+
+{% endblock %}
