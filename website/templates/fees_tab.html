@@ -1,6 +1,13 @@
-{% extends "base.html" %} {% block title %}Fees% endblock %} {% block content%}
+{% extends "base.html" %}
+
+{% block title %}Fees{% endblock %}
+
+{% block content %}
 <!DOCTYPE html>
+<html>
 <head>
+    <title>Fees</title>
+    <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
     <style>
         .modern-heading {
             text-align: center;
@@ -11,56 +18,148 @@
             text-transform: uppercase;
             border-bottom: 2px solid #7dbb5a;
             padding-bottom: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 5px;
         }
-.form-container {
-  display: flex;
-  flex-wrap: wrap;
-  margin-bottom: 80px;
-}
 
-.form-container .form-inputs {
-  flex: 0 0 calc(50% - 20px);
-  margin-right: 20px;
-  background-color: rgba(200, 200, 200, 0.8);
-  padding: 20px;
-  border-radius: 10px;
-}
+        .form-container {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            background-color: rgba(200, 200, 200, 0.8);
+            border-radius: 10px;
+            padding: 10px;
+        }
 
 
-
-    .footer {
-        text-align: center;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 10px;
-        background-color: #f5f5f5;
+    .form-ratecard table {
+            width: 100%;
+          background-color: rgba(200, 200, 200, 0.8);
+        table-layout: fixed;
+        border-radius: 10px;
+        margin-bottom: 10px;
     }
+
+    .form-ratecard th,
+    .form-ratecard td {
+        padding: 0px;
+        text-align: center;
+    }
+
+    .form-ratecard th:not(:first-child),
+    .form-ratecard td:not(:first-child) {
+        width: 15%;
+    }
+
+
+
+        .footer {
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+        }
+               .container-margin-bottom {
+            margin-bottom: 100px;
+        }
     </style>
 </head>
-
-<link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
-
-
 <body>
-  <h1 class="modern-heading">APC Rate Card</h1>
+    <h1 class="modern-heading">Fees</h1>
 
-  <div class="form-container">
-    <label>Index Rate Used</label>
+    <div class="form-container">
+        <form method="POST">
+            <h3>Application Processing Fees/Deposits</h3>
+            <label>- All APC loan applicants are subject to a $2500 deposit that will be charged at time of Proposal Letter or Commitment Letter issuance.</label>
+            <label>- If there are multiple active deals running concurrently, then only one application fee will be charged to the borrower.</label>
+            <label>- Returning customers are eligible for $500 discount on the application fee if they come back to us within 2 years of a previously funded loan. The
+             discounted application fee will be $2,000.
+            </label>
+            </div>
+<div class="form-container">
+            <h3>Loan Origination Fees</h3>
+
+            <label>All APC borrowers must pay an Origination fee at time of loan closing. The Origination fee amount starts at 4.99% of the requested loan
+            amount, but discounts are offered to higher volume owners/borrowers per the below schedule: </label>
+             <label>- 4.99% fee for loan amounts to the same ownership group totaling $749,999 or less </label>
+            <label>- 4.50% fee for loan amounts to the same ownership group totaling between $750,000 and $1,499,999 </label>
+            <label>- 4.00% fee for loan amounts to the same ownership group $1,500,000 and $1,999,999 </label>
+             <label>- 3.50% fee for loans totaling between $2,000,000 and $2,999,999 </label><br>
+              <label>- 3.00% fee for loans totaling $3,000,000 or greater </label>
+
+            <label>The volume discount only applies to monies lent to entities with the exact same ownership structure within a rolling 24-month window. The
+                lower discounted Origination Fee % will apply to the loan that takes the total monies lent to that ownership structure above the
+                fee threshold and all future loans to that ownership group.</label>
+        </div>
+
+    <div class="form-container">
+    <div class="form-ratecard">
+
+        <h3 style="text-align: center;">Brand Specific Pricing for Cash Flow Loans</h3>
+            <br>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Brand</th>
+        <th>0 - 750K</th>
+          <th>751K - 1.5M</th>
+          <th>1.5M+</th>
+
+      </tr>
+    </thead>
+    <tbody>
+{% for index, row in fees_table.iterrows() %}
+      <tr>
+        <td>{{ row['Brand'] }}</td>
+        <td>{{ row['0 - 750K'] }}</td>
+        <td>{{ row['751K - 1.5M'] }}</td>
+        <td>{{ row['1.5M+'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+    </div>
 
 
-  </div>
 
+<div class="form-container">
+<h3>APC Pre Payment Penalties</h3>
+<label>Some loans may have fees embedded into the rate, where we charge a higher interest rate than in our rate schedule, with the ability
+to sell that loan to investors at a higher price than par (or our otherwise normally agreed sale price.
+</label>
+<br>
+<label>Any APC loan priced with an embedded fee (reduced origination fee in exchange for higher rate) will include a 4/3/2/1/0 prepayment premium:</label>
+         <label>- 4% of any amount prepaid before the 1st anniversary of the funding date </label>
+        <label>- 3% of any amount prepaid between the 1st and 2nd anniversaries of the funding date </label>
+        <label>- 2% of any amount prepaid between 2nd and 3rd anniversaries of the funding date </label>
+         <label>- 1% of any amount prepaid between 3rd and 4th anniversaries of the funding date </label><br>
+          <label>- 0% for any amounts prepaid after the 4th anniversary of the funding date </label>
 
+    </div>
+<div class="form-container">
+<h3>Current APC Fee Promotion</h3>
+
+<label>There is a 3% origination fee for refinance opportunities for Apple Pie Capital/Funding Solutions customers.</label>
+<label>**Straight Refi (no recap). Refi has to be of an APC Core loan or SBA loan placed by APCFS. Fee charged is the lessor of the brand specific
+ cashflow pricing or this program.
+</label>
+    <label>3% Scooters Coffee competitive pricing program.</label>
+    <label>Salons By JC: 3.5% Origination Fee (Origination Fee does NOT apply to TI funding.</label>
+
+</div>
+
+    <div class="container-margin-bottom"></div>
     <div class="footer">
         Created and Managed by Tyler Yahnke and Joel Fuentes
         <br>
         Version 3.0
     </div>
 
+
 </body>
 </html>
-
 {% endblock %}

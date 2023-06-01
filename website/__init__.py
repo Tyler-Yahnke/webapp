@@ -20,8 +20,8 @@ def create_app():
     from .auth import auth
     from .fees import fees
 
-    application.register_blueprint(fees, url_prefix='/fees')
     application.register_blueprint(auth, url_prefix='/')
+    application.register_blueprint(fees, url_prefix='/')
     application.register_blueprint(views, url_prefix='/')
 
     from .models import User
