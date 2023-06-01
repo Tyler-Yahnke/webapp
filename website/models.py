@@ -1,9 +1,7 @@
 from . import db
 from flask_login import UserMixin
 from sqlalchemy.sql import func
-from google.oauth2 import service_account
-import pygsheets
-import json
+
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
