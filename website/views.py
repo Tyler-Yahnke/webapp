@@ -11,7 +11,7 @@ from . import db
 views = Blueprint('views', __name__)
 
 
-@views.route('/', methods=['GET', 'POST'])
+@views.route('/ratecard', methods=['GET', 'POST'])
 @login_required
 def home():
     global recommit, userselection_scooters,userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date
