@@ -1,5 +1,4 @@
 from website import create_app
-from flask import redirect, request
 
 application = create_app()
 
