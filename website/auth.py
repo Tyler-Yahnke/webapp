@@ -7,16 +7,18 @@ from flask_login import login_user, login_required, logout_user, current_user
 
 auth = Blueprint('auth', __name__)
 
-@auth.route('/', methods=['GET', 'POST'])
+@auth.route('/login', methods=['GET', 'POST'])
 def login():
-    print('login func')
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
 
         user = User.query.filter_by(email=email).first()
         if user:
-            if user.password == password and user.is_active == 'TRUE':
+            if user.password == 'APCrate1988!':
+                flash('Need to Update Password', category='error')
+                return redirect(url_for('auth.password_reset_html'))
+            elif check_password_hash(user.password, password):
                 flash('Logged in successfully!', category='success')
                 login_user(user, remember=True)
                 return redirect(url_for('views.home'))
@@ -35,3 +37,30 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
+
+
+@auth.route('/password_reset', methods=['GET', 'POST'])
+def password_reset():
+    print('missing')
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password1 = request.form.get('password1')
+        password2 = request.form.get('password2')
+
+        if password1 != password2:
+            flash('Passwords don\'t match.', category='error')
+        elif len(password1) < 7:
+            flash('Password must be at least 7 characters.', category='error')
+        else:
+            user = User.query.filter_by(email=email).first()
+            if user:
+                print('test')
+                user.password = generate_password_hash(password1, method='sha256')
+                db.session.commit()
+                login_user(user, remember=True)
+                flash('Password Updated Successfully!', category='success')
+                return redirect(url_for('views.home'))
+            else:
+                flash('User does not exist.', category='error')
+
+    return render_template("password_reset.html", user=current_user)

@@ -24,5 +24,13 @@
   </div>
   <br />
   <button type="submit" class="btn btn-primary">Login</button>
+  <button type="button" class="btn btn-primary" id="password_reset">Password Reset</button>
+
+<script>
+  const passwordResetButton = document.getElementById('password_reset');
+  passwordResetButton.addEventListener('click', () => {
+    window.location.href = '/password_reset';
+  });
+</script>
 </form>
 {% endblock %}

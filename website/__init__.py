@@ -8,12 +8,13 @@ import json
 
 db = SQLAlchemy()
 APC_DB = "APC_Database.db"
-ABSOLUTE_PATH = "/Users/tyleryahnke/PycharmProjects/webapp/website"
+#ABSOLUTE_PATH = "/Users/tyleryahnke/PycharmProjects/webapp/website"
 
 def create_app():
     application = Flask(__name__)
     application.config['SECRET_KEY'] = '54ge5rg4e4eshg4serthg4s5h4esr8t674'
-    application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{path.join(ABSOLUTE_PATH, APC_DB)}'
+    #application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{path.join(ABSOLUTE_PATH, APC_DB)}'
+    application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{APC_DB}'
     db.init_app(application)
 
     from .views import views
@@ -26,7 +27,7 @@ def create_app():
 
     from .models import User
 
-    #create_database(application)
+    create_database(application)
 
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
@@ -37,53 +38,52 @@ def create_app():
         return User.query.get(int(id))
 
     return application
-'''
+
 def create_database(application):
     if not path.exists(APC_DB):
-        with application.application_context():
+        with application.app_context():
             db.create_all()
             print('Created Database!')
 
-        with open('creds.json', 'r') as file:
-            cred = json.load(file)
+            with open('creds.json', 'r') as file:
+                cred = json.load(file)
 
-        SCOPES = ('https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive')
-        my_credentials = service_account.Credentials.from_service_account_info(cred, scopes=SCOPES)
+            SCOPES = ('https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive')
+            my_credentials = service_account.Credentials.from_service_account_info(cred, scopes=SCOPES)
 
-        # Call the Sheets API
-        api_failure = 0
-        fail_string = ''
-        try:
-            gc = pygsheets.authorize(custom_credentials=my_credentials)
-            rate_file = gc.open_by_key('13MUnNC1va0bEE_fGU5P0RFLHf-CEqWxOVk6YmEVwB1c')
-
+            # Call the Sheets API
+            api_failure = 0
+            fail_string = ''
             try:
-                users = rate_file.worksheet_by_title('Users')
+                gc = pygsheets.authorize(custom_credentials=my_credentials)
+                rate_file = gc.open_by_key('13MUnNC1va0bEE_fGU5P0RFLHf-CEqWxOVk6YmEVwB1c')
 
                 try:
-                    users_df = users.get_as_df()
-                    
+                    users = rate_file.worksheet_by_title('Users')
 
-                    with application.application_context():
+                    try:
+                        users_df = users.get_as_df()
+
                         from .models import User
 
-                        User.query.delete()
+                        with application.app_context():
+                            for _, row in users_df.iterrows():
+                                email = row['email']
+                                existing_user = User.query.filter_by(email=email).first()
+                                if not existing_user:
+                                    user = User(email=email, name=row['name'], password=row['password'], is_active=row['is_active'])
+                                    db.session.add(user)
+                            db.session.commit()
 
-                        for _, row in users_df.iterrows():
-                            user = User(email=row['email'], name=row['name'], password=row['password'], is_active=row['is_active'])
-                            db.session.add(user)
-                        db.session.commit()
-
-                    print('Data inserted into the "user" table.')
-                except Exception as e:
-                    print(f"Error inserting data into the 'user' table: {str(e)}")
+                        print('Data inserted into the "user" table.')
+                    except Exception as e:
+                        print(f"Error inserting data into the 'user' table: {str(e)}")
+                except:
+                    print('fail 2')
             except:
-                print('fail 2')
-        except:
-            print('fail 1')
+                print('fail 1')
 
 application = create_app()
 
 if __name__ == '__main__':
     application.run(debug=True)
-'''
