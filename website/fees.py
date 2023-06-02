@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 fees = Blueprint('fees', __name__)
 
 @fees.route('/fees', methods=['GET', 'POST'])
-#@login_required
+@login_required
 def fees_func():
     data = {'Brand':[''],
                        '0 - 750K':[''],
