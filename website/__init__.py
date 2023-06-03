@@ -7,8 +7,7 @@ import json
 import os
 
 db = SQLAlchemy()
-base_dir = os.path.abspath(os.path.dirname(__file__))
-APC_DB = os.path.join(base_dir, 'APC_Database.db')
+APC_DB = 'APC_Database.db'
 
 def create_app():
     application = Flask(__name__)
@@ -27,9 +26,7 @@ def create_app():
     from .models import User
 
     with application.app_context():
-        if not os.path.exists(APC_DB):
-            db.create_all()
-            print('Created Database!')
+        db.create_all()
 
     #create_database(application)
 
@@ -42,6 +39,12 @@ def create_app():
         return User.query.get(int(id))
 
     return application
+
+
+def create_database(application):
+    if not path.exists('website/' + APC_DB):
+        db.create_all(application=application)
+        print('Created Database!')
 
 '''
 def create_database(application):
