@@ -8,7 +8,7 @@ import os
 
 db = SQLAlchemy()
 APC_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'APC_Database.db')
-
+#test
 def create_app():
     application = Flask(__name__)
     application.config['SECRET_KEY'] = '54ge5rg4e4eshg4serthg4s5h4esr8t674'
