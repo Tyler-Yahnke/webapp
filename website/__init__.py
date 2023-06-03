@@ -31,7 +31,7 @@ def create_app():
             db.create_all()
             print('Created Database!')
 
-    create_database(application)
+    #create_database(application)
 
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
