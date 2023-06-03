@@ -29,6 +29,9 @@ def create_app():
 
     from .models import User
 
+    with app.app_context():
+        db.create_all()
+
     create_database(application)
 
     login_manager = LoginManager()
@@ -92,10 +95,3 @@ def create_database(application):
         else:
             print('Database already exists')
 
-
-
-
-application = create_app()
-
-if __name__ == '__main__':
-    application.run(debug=False)
