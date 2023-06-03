@@ -1,0 +1,10 @@
+Flask==2.3.2
+Flask_Login==0.6.2
+flask_sqlalchemy==3.0.3
+pandas==2.0.2
+protobuf==4.23.2
+pygsheets==2.0.6
+python_dateutil==2.8.2
+Requests==2.31.0
+SQLAlchemy==2.0.15
+Werkzeug==2.3.4
