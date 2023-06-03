@@ -9,13 +9,11 @@ import json
 
 db = SQLAlchemy()
 APC_DB = "APC_Database.db"
-#ABSOLUTE_PATH = "/Users/tyleryahnke/PycharmProjects/webapp/website"
 
 def create_app():
     application = Flask(__name__)
     #sslify = SSLify(application)
     application.config['SECRET_KEY'] = '54ge5rg4e4eshg4serthg4s5h4esr8t674'
-    #application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{path.join(ABSOLUTE_PATH, APC_DB)}'
     application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{APC_DB}'
     db.init_app(application)
 
