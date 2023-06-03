@@ -8,13 +8,13 @@ import json
 
 db = SQLAlchemy()
 APC_DB = "APC_Database.db"
-#ABSOLUTE_PATH = "/Users/tyleryahnke/PycharmProjects/webapp/website"
+ABSOLUTE_PATH = "/Users/tyleryahnke/PycharmProjects/webapp/website"
 
 def create_app():
     application = Flask(__name__)
     application.config['SECRET_KEY'] = '54ge5rg4e4eshg4serthg4s5h4esr8t674'
-    #application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{path.join(ABSOLUTE_PATH, APC_DB)}'
-    application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{APC_DB}'
+    application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{path.join(ABSOLUTE_PATH, APC_DB)}'
+    #application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{APC_DB}'
     db.init_app(application)
 
     from .views import views
@@ -27,7 +27,7 @@ def create_app():
 
     from .models import User
 
-    create_database(application)
+    #create_database(application)
 
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
@@ -38,7 +38,7 @@ def create_app():
         return User.query.get(int(id))
 
     return application
-
+'''
 def create_database(application):
     if not path.exists(APC_DB):
         with application.app_context():
@@ -87,3 +87,4 @@ application = create_app()
 
 if __name__ == '__main__':
     application.run(debug=True)
+'''
