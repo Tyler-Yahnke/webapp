@@ -9,7 +9,7 @@ def create_app():
     application = Flask(__name__)
 
     application.config['SECRET_KEY'] = '54ge5rg4e4eshg4ser324243thg4s5h4esr8t674'
-    application.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://ebroot:Yamaha189!@awseb-e-rvvktpucyf-stack-awsebrdsdatabase-ijbluxt9ye2s.cavhriuewzv4.us-east-1.rds.amazonaws.com:3306/ebdb'
+    application.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://ebroot:Yamaha189!@awseb-e-rvvktpucyf-stack-awsebrdsdatabase-ijbluxt9ye2s.cavhriuewzv4.us-east-1.rds.amazonaws.com:3306/ebdb'
     application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(application)
