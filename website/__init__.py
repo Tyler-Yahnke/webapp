@@ -29,8 +29,10 @@ def create_app():
 
     from .models import User
 
-    with app.app_context():
-        db.create_all()
+    with application.app_context():
+        if not path.exists(APC_DB):
+            db.create_all()
+            print('Created Database!')
 
     create_database(application)
 
@@ -46,52 +48,50 @@ def create_app():
 
 def create_database(application):
     with application.app_context():
-        if not path.exists(APC_DB):
-            db.create_all()
-            print('Created Database!')
+        with open('creds.json', 'r') as file:
+            cred = json.load(file)
 
-            with open('creds.json', 'r') as file:
-                cred = json.load(file)
+        SCOPES = ('https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive')
+        my_credentials = service_account.Credentials.from_service_account_info(cred, scopes=SCOPES)
 
-            SCOPES = ('https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive')
-            my_credentials = service_account.Credentials.from_service_account_info(cred, scopes=SCOPES)
+        # Call the Sheets API
+        api_failure = 0
+        fail_string = ''
+        try:
+            gc = pygsheets.authorize(custom_credentials=my_credentials)
+            rate_file = gc.open_by_key('13MUnNC1va0bEE_fGU5P0RFLHf-CEqWxOVk6YmEVwB1c')
 
-            # Call the Sheets API
-            api_failure = 0
-            fail_string = ''
             try:
-                gc = pygsheets.authorize(custom_credentials=my_credentials)
-                rate_file = gc.open_by_key('13MUnNC1va0bEE_fGU5P0RFLHf-CEqWxOVk6YmEVwB1c')
+                users = rate_file.worksheet_by_title('Users')
 
                 try:
-                    users = rate_file.worksheet_by_title('Users')
+                    users_df = users.get_as_df()
 
-                    try:
-                        users_df = users.get_as_df()
+                    from .models import User
 
-                        from .models import User
+                    with db.session.begin_nested():
+                        existing_emails = User.query.with_entities(User.email).all()
+                        existing_emails = set([email[0] for email in existing_emails])
 
-                        with db.session.begin_nested():
-                            existing_emails = User.query.with_entities(User.email).all()
-                            existing_emails = set([email[0] for email in existing_emails])
+                        for _, row in users_df.iterrows():
+                            email = row['email']
+                            if email not in existing_emails:
+                                user = User(email=email, name=row['name'], is_active=row['is_active'])
+                                db.session.add(user)
 
-                            for _, row in users_df.iterrows():
-                                email = row['email']
-                                if email not in existing_emails:
-                                    user = User(email=email, name=row['name'], is_active=row['is_active'])
-                                    db.session.add(user)
+                        User.query.filter(User.email.notin_(users_df['email'])).delete(synchronize_session=False)
 
-                            User.query.filter(User.email.notin_(users_df['email'])).delete(synchronize_session=False)
+                        db.session.commit()
 
-                            db.session.commit()
-
-                        print('Data inserted into the "user" table.')
-                    except Exception as e:
-                        print(f"Error inserting data into the 'user' table: {str(e)}")
-                except:
-                    print('fail 2')
+                    print('Data inserted into the "user" table.')
+                except Exception as e:
+                    print(f"Error inserting data into the 'user' table: {str(e)}")
             except:
-                print('fail 1')
-        else:
-            print('Database already exists')
+                print('fail 2')
+        except:
+            print('fail 1')
 
+application = create_app()
+
+if __name__ == '__main__':
+    application.run(debug=True)
