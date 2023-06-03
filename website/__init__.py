@@ -7,7 +7,7 @@ import pygsheets
 import json
 
 db = SQLAlchemy()
-APC_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'APC_Database.db')
+APC_DB = "APC_Database.db"
 
 def create_app():
     application = Flask(__name__)
@@ -26,7 +26,7 @@ def create_app():
     from .models import User
 
     with application.app_context():
-        if not path.exists(APC_DB):
+        if not os.path.exists(APC_DB):
             db.create_all()
             print('Created Database!')
 
