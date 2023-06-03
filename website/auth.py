@@ -14,8 +14,10 @@ def login():
         password = request.form.get('password')
 
         user = User.query.filter_by(email=email).first()
+
         if user:
             if check_password_hash(user.password, password):
+                print('here again')
                 flash('Logged in successfully!', category='success')
                 login_user(user, remember=True)
                 return redirect(url_for('views.home'))
@@ -49,7 +51,7 @@ def password_reset():
         else:
             user = User.query.filter_by(email=email).first()
             if user:
-                user.password = generate_password_hash(password1, method='sha256')
+                user.password = generate_password_hash(password1, method='scrypt')
                 db.session.commit()
                 login_user(user, remember=True)
                 flash('Password Updated Successfully!', category='success')
