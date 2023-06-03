@@ -18,12 +18,12 @@ def login():
             if user.password == 'APCrate1988!':
                 flash('Need to Update Password', category='error')
                 return redirect(url_for('auth.password_reset_html'))
+            elif user.is_active == 'FALSE':
+                flash('User is inactive, try again.', category='error')
             elif check_password_hash(user.password, password):
                 flash('Logged in successfully!', category='success')
                 login_user(user, remember=True)
                 return redirect(url_for('views.home'))
-            elif user.is_active == 'FALSE':
-                flash('User is inactive, try again.', category='error')
             else:
                 flash('Incorrect password, try again.', category='error')
         else:
@@ -41,7 +41,6 @@ def logout():
 
 @auth.route('/password_reset', methods=['GET', 'POST'])
 def password_reset():
-    print('missing')
     if request.method == 'POST':
         email = request.form.get('email')
         password1 = request.form.get('password1')
@@ -54,7 +53,6 @@ def password_reset():
         else:
             user = User.query.filter_by(email=email).first()
             if user:
-                print('test')
                 user.password = generate_password_hash(password1, method='sha256')
                 db.session.commit()
                 login_user(user, remember=True)
