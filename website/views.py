@@ -90,6 +90,12 @@ def home():
         userselection_dp = request.form.get('down_payment')
         selected_date =request.form.get('selected_date')
 
+        if selected_date == '' and recommit == 'Y':
+            flash('Date Selection Required or Update Recommit to N', category='error')
+            return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
+        else:
+            pass
+
         missing_selection = missing()
         if missing_selection == 'Missing':
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
@@ -103,6 +109,7 @@ def home():
         all_prime = datetime.datetime(2023, 5, 4)
 
         if recommit == 'Y':
+
             selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
 
             if (today - selected_date).days > 120:
