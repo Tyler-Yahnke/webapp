@@ -1,13 +1,14 @@
-from flask import Flask
+from flask import Flask, current_app
 from flask_sqlalchemy import SQLAlchemy
+from flask_sslify import SSLify
+from os import path
 from flask_login import LoginManager
 from google.oauth2 import service_account
 import pygsheets
 import json
-import os
 
 db = SQLAlchemy()
-APC_DB = 'APC_Database.db'
+APC_DB = "APC_Database.db"
 
 def create_app():
     application = Flask(__name__)
@@ -28,8 +29,6 @@ def create_app():
     with application.app_context():
         db.create_all()
 
-    #create_database(application)
-
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
     login_manager.init_app(application)
@@ -39,12 +38,6 @@ def create_app():
         return User.query.get(int(id))
 
     return application
-
-
-def create_database(application):
-    if not path.exists('website/' + APC_DB):
-        db.create_all(application=application)
-        print('Created Database!')
 
 '''
 def create_database(application):

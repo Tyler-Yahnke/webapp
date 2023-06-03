@@ -15,12 +15,7 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if user:
-            if user.password == 'APCrate1988!':
-                flash('Need to Update Password', category='error')
-                return redirect(url_for('auth.password_reset_html'))
-            elif user.is_active == 'FALSE':
-                flash('User is inactive, try again.', category='error')
-            elif check_password_hash(user.password, password):
+            if check_password_hash(user.password, password):
                 flash('Logged in successfully!', category='success')
                 login_user(user, remember=True)
                 return redirect(url_for('views.home'))
@@ -30,6 +25,7 @@ def login():
             flash('Email does not exist.', category='error')
 
     return render_template("login.html", user=current_user)
+
 
 
 @auth.route('/logout')

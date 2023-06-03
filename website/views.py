@@ -6,6 +6,9 @@ from pandas.tseries.offsets import BDay
 import pygsheets
 import pandas as pd
 import json
+import requests
+import dateutil.parser
+
 from . import db
 
 views = Blueprint('views', __name__)
@@ -149,8 +152,91 @@ def missing():
         return 'Missing'
     return None
 
+
+def swap_updates():
+    print('swap updates begin')
+    url = "https://ondemand.websol.barchart.com/getQuote.json?apikey=f662dbbcc2a45be5307136cb8e74da08&symbols=SWAEADY3.RT, SWAEADY5.RT, WSJPRIME.RT"
+
+    payload = {}
+    headers = {}
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+
+
+
+    with open('creds.json', 'r') as file:
+        cred = json.load(file)
+
+
+
+    SCOPES = ('https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive')
+    my_credentials = service_account.Credentials.from_service_account_info(cred, scopes=SCOPES)
+
+    gc = pygsheets.authorize(custom_credentials=my_credentials)
+    rate_file = gc.open_by_key('13MUnNC1va0bEE_fGU5P0RFLHf-CEqWxOVk6YmEVwB1c')
+
+    daily = rate_file.worksheet_by_title('Dailyswaps')
+
+
+
+    for symbols in response.json()['results']:
+        if symbols['symbol'] == 'SWAEADY3.RT':
+            swap_3year = symbols['lastPrice']
+            date_3year_str = symbols['tradeTimestamp']
+
+        elif symbols['symbol'] == 'SWAEADY5.RT':
+            swap_5year = symbols['lastPrice']
+            date_5year_str = symbols['tradeTimestamp']
+
+    swap_4year = round((swap_3year + swap_5year), 4) / 2
+
+
+
+    date_3year = dateutil.parser.parse(date_3year_str).strftime('%m/%d/%Y')
+
+    date_5year = dateutil.parser.parse(date_5year_str).strftime('%m/%d/%Y')
+
+
+    new_vals = [date_3year, "{:.2%}".format(swap_3year), "{:.2%}".format(swap_4year), "{:.2%}".format(swap_5year)]
+
+    daily_swap_df = daily.get_as_df()
+    most_recent_date = daily_swap_df['Date'].iloc[0]
+
+
+
+    if most_recent_date != date_3year:
+        daily.insert_rows(row=1, number=1, values=new_vals)
+
+    elif most_recent_date == date_3year:
+        pass
+
+    # Pulling in prime rate and updating table
+    daily_prime = rate_file.worksheet_by_title('PrimeRate')
+
+
+    for symbols in response.json()['results']:
+        if symbols['symbol'] == 'WSJPRIME.RT':
+            prime_rate = symbols['lastPrice']
+            prime_rate_str = symbols['tradeTimestamp']
+
+
+
+    prime_rate_date = dateutil.parser.parse(prime_rate_str).strftime('%m/%d/%Y')
+
+    new_prime_vals = [prime_rate_date, "{:.2%}".format(prime_rate)]
+
+
+
+    daily_prime_df = daily_prime.get_as_df()
+    most_recent_date = daily_prime_df['Date'].iloc[0]
+
+    if most_recent_date != prime_rate_date:
+        daily_prime.insert_rows(row=1, number=1, values=new_prime_vals)
+
+    print('swap updates end')
+
 def datapull():
-    global spreads_df, ef_df, daily_swap_df, swap_spread_dic, swap_spread_dic_define, api_failure, fail_string, prime_df, bridge_df
+    global spreads_df, ef_df, daily_swap_df, swap_spread_dic, swap_spread_dic_define, api_failure, fail_string, prime_df, bridge_df, down_payment_fee_dict
 
     with open('creds.json', 'r') as file:
         cred = json.load(file)
@@ -183,25 +269,19 @@ def datapull():
                     Prev_Biz_Day = datetime.datetime.today() - BDay(1)
                     formatted_dt = Prev_Biz_Day.strftime('%m/%d/%Y')
 
-                    print(daily_swap_df['Date'][0])
-                    print(formatted_dt)
 
                     if daily_swap_df['Date'][0] != (formatted_dt):
-                        print('1')
                         swap_updates()
                         daily = rate_file.worksheet_by_title('Dailyswaps')
                         daily_swap_df = daily.get_as_df()
 
                     elif prime_df['Date'][0] != (formatted_dt):
-                        print('2')
                         swap_updates()
                         prime = rate_file.worksheet_by_title('PrimeRate')
                         prime_df = prime.get_as_df()
                     else:
-                        print('3')
                         pass
 
-                    print('4')
                     swap_3year = round(float(daily_swap_df.iloc[0]['3Year'][:-1]) / 100, 4)
                     swap_4year = round(float(daily_swap_df.iloc[0]['4Year'][:-1]) / 100, 4)
                     swap_5year = round(float(daily_swap_df.iloc[0]['5Year'][:-1]) / 100, 4)
@@ -219,7 +299,7 @@ def datapull():
                                               '120/120': '5 Year'}
 
                     down_payment_fee_dict = {'Y': 0.0025, 'N': 0.00, 'N/A': 0.00}
-                    print('im here')
+
                 except:
                     fail_string = 'Failed pulling swap values'
 
@@ -237,93 +317,7 @@ def datapull():
         api_failure = 1
     print('test data pull')
 
-def swap_updates():
-    print('swap updates begin')
-    url = "https://ondemand.websol.barchart.com/getQuote.json?apikey=f662dbbcc2a45be5307136cb8e74da08&symbols=SWAEADY3.RT, SWAEADY5.RT, WSJPRIME.RT"
 
-    payload = {}
-    headers = {}
-
-    response = requests.request("GET", url, headers=headers, data=payload)
-    fail = 0
-
-
-    cred = {
-
-        "type": "service_account",
-        "project_id": "python-rate-sheet",
-        "private_key_id": "dd51fec6c0a1a2eb4bc4d42d17dac22c1c7ba850",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCO7viLzuf1f9Ki\npGKuW2oXSlFG5K7sV79hz67dQz40X4SxpY+5eCGZxnC1WmC/q9DcCTjkAm6pG1oy\n5fQ7tjD8YUvHAQfO3SGt7IeveepQU8Kj9/GkW7y81cFxg3vZx54oZsjZMTjKmcH7\nBCz7leTON2Zxah8ZpYSzRrNeCgx8cGOh2VFGcbu6jDama5NRGjYBDRTZOz5UHgOo\nC43/kWeZu/cTJlPboiPP1VknLSEMJ0qXEUu82Gs0Eosi7lkohLhZh/Og0/Bh10e2\nJMDvZN4Faqrbs43+KyeDtuMgZjFNZuTiYKXXMuw2wb6GI98byBeZHASdOk2Z+8Jm\nhs3nOMFFAgMBAAECggEAGxROvewX+aS7IwmqUXaruZhgoCIEuu2f6lfGvRA3iYQc\nN2zStzR5hzD3mwAxqraSRhGwN9B3Jy4xr0luNV7d1n7XdK8vC8PM1O7mQPpDyG6q\nBlcb7oPb1NnZgZhDv12IiwZ4IF/pLsclH1mp7Qs3s1L/I1cT58+6PZ3ULymPtoZq\n5ROFhI1Nya5OrSyuIGCbdSUbByCiteWLORwddUuMMZG8oD16ObxqfV8x6I/cd9BI\nDR00h4brtS2Va4hwKXP3SYkduk/K3eqDMnrIIbioEjfWlTf2/Eq/modTaj4ynVIw\nL9qJIjiXqV58Pl29K7YgxWJ1Y/HV/dpxUR0DF4kmyQKBgQDIt88SLaIbRAjF5DmX\nN5lC3Z7UL0WowgXAzjC5M04F96fQf34T2Q7RCFbkPcm9nbsJ+mMLfw40G2BYNdzv\n1l4qqlHPakNF03aqZzC/uPMsbakXABIgJJhMcgs17kqWmDOwzUGJRfWClHAjtf7R\nTffszhBlxyosGaI6FsFATgCRjQKBgQC2TOaMo+ZIx4pwJ+cALPkEi5OmfKhrRu0U\nQYgEXvdgw8Z9ChiUENnCtZAMaePxIDvVXnHWOniuXC2sfkzK9IgCrUfQ6tbjUEh/\nzdPKsBxpOxmgVKscOkndUNs6ca0n59ZK88r5cGVLsoLj3G2o8jlKA49lSFriHLVx\n040I2P3UmQKBgQDH5ObAf9nVtafXDTedta1YvkYToxCIxNHd9nrntoSZxM7IAnCZ\na64p11hR7ocf5BoGEerZ5CtNEYad0ua5pJAbhYv8OSPOQo8HncUa6yKiuIOReGyU\nvl0+pMUtbKez2th/16rQ/29GIHad2f5wjGnA2GfUNMl3KgA6QbcsR4KhcQKBgBhb\nJeJcc4P9xO0/J4nKeGq3Cz8PIKFUlJBEQRv0ZDC1d2t1UdtWdQGiqGBANYgdumDD\ngYoRvdXt0txc832aNiHFbPboqVUtgMIyib1m0iTtFHtrVIEs+HltOB0S2wOd4e+Z\nquCwt5fpfbtb0/rigez1lM7/X8Ud+NAAZ7Nq6l7hAoGBAKZQIns6ZvStlqpAQ0Rz\ngIXMa+ppx3aZTWNmCiIMzjzTCZf6u4GOuXuewk00ys/M1pNn7iYtzgF0DSUnYyhi\nbArKCSHzeNRVWFH4EH3yTjXd2zOJ8QcCGkHJGq3DYzyitFlJLUBHD3S1xNwBDhCe\n1SHMDaTCFto+98f0iMTEto3G\n-----END PRIVATE KEY-----\n",
-        "client_email": "python-connector@python-rate-sheet.iam.gserviceaccount.com",
-        "client_id": "117453940853777693588",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/python-connector%40python-rate-sheet.iam.gserviceaccount.com"
-    }
-
-    SCOPES = ('https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive')
-    my_credentials = service_account.Credentials.from_service_account_info(cred, scopes=SCOPES)
-
-    gc = pygsheets.authorize(custom_credentials=my_credentials)
-    rate_file = gc.open_by_key('13MUnNC1va0bEE_fGU5P0RFLHf-CEqWxOVk6YmEVwB1c')
-
-    daily = rate_file.worksheet_by_title('Dailyswaps')
-
-    for symbols in response.json()['results']:
-        if symbols['symbol'] == 'SWAEADY3.RT':
-            swap_3year = symbols['lastPrice']
-            date_3year_str = symbols['tradeTimestamp']
-
-        elif symbols['symbol'] == 'SWAEADY5.RT':
-            swap_5year = symbols['lastPrice']
-            date_5year_str = symbols['tradeTimestamp']
-
-    swap_4year = round((swap_3year + swap_5year), 4) / 2
-
-    if swap_3year < 0 or swap_5year < 0 or swap_3year == None or swap_5year == None:
-        msg = '''
-         ... From: DailyBarchartUpdate@gmail.com
-         ... Subject: Error Notification
-         ...
-         ... The API returned with invalid swap rate values '''
-
-        server.sendmail(sender, recip, msg)
-
-    date_3year = dateutil.parser.parse(date_3year_str).strftime('%m/%d/%Y')
-    date_5year = dateutil.parser.parse(date_5year_str).strftime('%m/%d/%Y')
-
-    new_vals = [date_3year, "{:.2%}".format(swap_3year), "{:.2%}".format(swap_4year), "{:.2%}".format(swap_5year)]
-
-    daily_swap_df = daily.get_as_df()
-    most_recent_date = daily_swap_df['Date'].iloc[0]
-
-    if most_recent_date != date_3year:
-        daily.insert_rows(row=1, number=1, values=new_vals)
-
-    elif most_recent_date == date_3year:
-        pass
-
-    # Pulling in prime rate and updating table
-    daily_prime = rate_file.worksheet_by_title('PrimeRate')
-
-    for symbols in response.json()['results']:
-        if symbols['symbol'] == 'WSJPRIME.RT':
-            prime_rate = symbols['lastPrice']
-            prime_rate_str = symbols['tradeTimestamp']
-
-
-    prime_rate_date = dateutil.parser.parse(prime_rate_str).strftime('%m/%d/%Y')
-
-    new_prime_vals = [prime_rate_date, "{:.2%}".format(prime_rate)]
-
-    daily_prime_df = daily_prime.get_as_df()
-    most_recent_date = daily_prime_df['Date'].iloc[0]
-
-    if most_recent_date != prime_rate_date:
-        daily_prime.insert_rows(row=1, number=1, values=new_prime_vals)
-
-    print('swap updates end')
 def bridge_loan_func():
     global bridgeresults
     bridgeresults = {
@@ -387,12 +381,11 @@ def scooters_func():
         }
 
 def current_credit_policy():
-
+    print('new process')
     global current_credit_policy_results, rate_card_df, swapbaserate, baserate, swaprate, swapusedlabel, ratecardresults, Swapratedateresults, ratetyperesult, base_field, true_base, dp_field, dp_base, ef_field, ef_base, buyer_header
 
     current_credit_policy_results = {}
 
-    down_payment_fee_dict = {'Y': 0.0025, 'N': 0.00, 'N/A': 0.00}
 
     if recommit =="Y":
         temp_base_spread = spreads_df.loc[
@@ -527,7 +520,7 @@ def current_credit_policy():
 
 def previous_credit_policy():
     global previous_credit_policy_results, rate_card_df, swapbaserate, baserate, swaprate, swapusedlabel, ratecardresults, Swapratedateresults, base_field, true_base, dp_field, dp_base, ef_field, ef_base, buyer_header
-
+    print('old process')
 
 
     if userselection_pricing== 'Pro Forma':
@@ -669,12 +662,12 @@ def previous_credit_policy():
                         axis=1)
 
     previous_credit_policy_results = {
-        'index_rate_used': 'Prime',
+        'index_rate_used': 'Swap - ' + swap_spread_dic_define[userselection_term],
         'rate_card_used': userselection_pricing,
         'final_rate': f"{100 * final_spread: .2f}%",
         'spread_rate': f"{100 * base_spread: .2f}%",
-        'index_rate': prime_df.Rate[0],
-        'index_rate_date': prime_df.Date[0],
+        'index_rate': f"{100 * swap_spread_dic[userselection_term]: .2f}%",
+        'index_rate_date': daily_swap_df['Date'][0],
         'rate_type': userselection_ratetype,
         'loan_buyer_spread': loan_buyer_spread,
         'loan_buyer_fee': loan_buyer_fee,
