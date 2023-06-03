@@ -12,6 +12,7 @@ APC_DB = "APC_Database.db"
 
 def create_app():
     application = Flask(__name__)
+    sslify = SSLify(aplication)
     application.config['SECRET_KEY'] = '54ge5rg4e4eshg4serthg4s5h4esr8t674'
     #application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{path.join(ABSOLUTE_PATH, APC_DB)}'
     application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{APC_DB}'
@@ -40,8 +41,8 @@ def create_app():
     return application
 
 def create_database(application):
-    if not path.exists(APC_DB):
-        with application.app_context():
+    with application.app_context():
+        if not path.exists(APC_DB):
             db.create_all()
             print('Created Database!')
 
@@ -66,13 +67,18 @@ def create_database(application):
 
                         from .models import User
 
-                        with application.app_context():
+                        with db.session.begin_nested():
+                            existing_emails = User.query.with_entities(User.email).all()
+                            existing_emails = set([email[0] for email in existing_emails])
+
                             for _, row in users_df.iterrows():
                                 email = row['email']
-                                existing_user = User.query.filter_by(email=email).first()
-                                if not existing_user:
-                                    user = User(email=email, name=row['name'], password=row['password'], is_active=row['is_active'])
+                                if email not in existing_emails:
+                                    user = User(email=email, name=row['name'], is_active=row['is_active'])
                                     db.session.add(user)
+
+                            User.query.filter(User.email.notin_(users_df['email'])).delete(synchronize_session=False)
+
                             db.session.commit()
 
                         print('Data inserted into the "user" table.')
@@ -82,8 +88,13 @@ def create_database(application):
                     print('fail 2')
             except:
                 print('fail 1')
+        else:
+            print('Database already exists')
+
+
+
 
 application = create_app()
 
 if __name__ == '__main__':
-    application.run(debug=True)
+    application.run(debug=False)
