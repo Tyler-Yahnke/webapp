@@ -1,13 +1,13 @@
-from flask import Flask, current_app
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from os import path
 from flask_login import LoginManager
 from google.oauth2 import service_account
 import pygsheets
 import json
+import os
 
 db = SQLAlchemy()
-APC_DB = "APC_Database.db"
+APC_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'APC_Database.db')
 
 def create_app():
     application = Flask(__name__)
