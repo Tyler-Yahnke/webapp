@@ -16,6 +16,8 @@ views = Blueprint('views', __name__)
 def home():
     global recommit, userselection_scooters,userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date
 
+
+
     data = {'Month':[''],
                        'APC Grade':[''],
                        '60/60':[''],
@@ -73,7 +75,6 @@ def home():
         'selected_date' : request.form.get('selected_date')
                                }
 
-        datapull()
 
         recommit = request.form.get('recommit')
         userselection_scooters = request.form.get('scooters_coffee')
@@ -86,6 +87,13 @@ def home():
         userselection_dp = request.form.get('down_payment')
         selected_date =request.form.get('selected_date')
 
+        missing_selection = missing()
+        if missing_selection == 'Missing':
+            return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
+        else:
+            pass
+
+        datapull()
 
         today = datetime.datetime.today()
         prime_process_date = datetime.datetime(2023, 2, 6)
@@ -114,7 +122,6 @@ def home():
                 return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
         else:
-            print('test')
             current_credit_policy()
             results = current_credit_policy_results
             rate_card_table = rate_card_df
@@ -125,22 +132,25 @@ def home():
     return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
 def missing():
-    print('test missing')
     if userselection_term == 'Make Selection':
-        return 'Missing Term'
+        flash('Missing term', category='error')
+        return 'Missing'
     elif userselection_fee == 'Make Selection':
-        return 'Missing Embedded Fee'
+        flash('Missing fee', category='error')
+        return 'Missing'
     elif userselection_pricing == 'Make Selection':
-        return 'Missing Pricing Basis'
+        flash('Missing pricing', category='error')
+        return 'Missing'
     elif userselection_grade == 'Make Selection':
-        return 'Missing Grade'
+        flash('Missing grade', category='error')
+        return 'Missing'
     elif userselection_dp == 'Make Selection':
-        return 'Missing Down Payment'
+        flash('Missing down payment', category='error')
+        return 'Missing'
     return None
 
 def datapull():
-    print('test data pull')
-    global spreads_df, ef_df, daily_swap_df, swap_spread_dic, down_payment_fee_dict, swap_spread_dic_define, api_failure, fail_string, prime_df, bridge_df
+    global spreads_df, ef_df, daily_swap_df, swap_spread_dic, swap_spread_dic_define, api_failure, fail_string, prime_df, bridge_df
 
     with open('creds.json', 'r') as file:
         cred = json.load(file)
@@ -170,24 +180,28 @@ def datapull():
                 bridge_df = hb.get_as_df()
 
                 try:
-
-                    # NEW ADDITION HERE
                     Prev_Biz_Day = datetime.datetime.today() - BDay(1)
                     formatted_dt = Prev_Biz_Day.strftime('%m/%d/%Y')
 
+                    print(daily_swap_df['Date'][0])
+                    print(formatted_dt)
 
                     if daily_swap_df['Date'][0] != (formatted_dt):
+                        print('1')
                         swap_updates()
                         daily = rate_file.worksheet_by_title('Dailyswaps')
                         daily_swap_df = daily.get_as_df()
 
                     elif prime_df['Date'][0] != (formatted_dt):
+                        print('2')
                         swap_updates()
                         prime = rate_file.worksheet_by_title('PrimeRate')
                         prime_df = prime.get_as_df()
                     else:
+                        print('3')
                         pass
 
+                    print('4')
                     swap_3year = round(float(daily_swap_df.iloc[0]['3Year'][:-1]) / 100, 4)
                     swap_4year = round(float(daily_swap_df.iloc[0]['4Year'][:-1]) / 100, 4)
                     swap_5year = round(float(daily_swap_df.iloc[0]['5Year'][:-1]) / 100, 4)
@@ -205,6 +219,7 @@ def datapull():
                                               '120/120': '5 Year'}
 
                     down_payment_fee_dict = {'Y': 0.0025, 'N': 0.00, 'N/A': 0.00}
+                    print('im here')
                 except:
                     fail_string = 'Failed pulling swap values'
 
@@ -220,9 +235,10 @@ def datapull():
 
     if fail_string != 'Success':
         api_failure = 1
+    print('test data pull')
 
 def swap_updates():
-    print('test swap updates')
+    print('swap updates begin')
     url = "https://ondemand.websol.barchart.com/getQuote.json?apikey=f662dbbcc2a45be5307136cb8e74da08&symbols=SWAEADY3.RT, SWAEADY5.RT, WSJPRIME.RT"
 
     payload = {}
@@ -307,8 +323,8 @@ def swap_updates():
     if most_recent_date != prime_rate_date:
         daily_prime.insert_rows(row=1, number=1, values=new_prime_vals)
 
+    print('swap updates end')
 def bridge_loan_func():
-    print('test bridge')
     global bridgeresults
     bridgeresults = {
     'index_rate_used': 'Prime',
@@ -320,8 +336,6 @@ def bridge_loan_func():
     'rate_type': 'Fixed'}
 
 def scooters_func():
-
-    print('test scooters')
     global scootersresults
     scooters_date = datetime.datetime(2023, 4, 6)
 
@@ -374,10 +388,11 @@ def scooters_func():
 
 def current_credit_policy():
 
-    global current_credit_policy_results, rate_card_df, swapbaserate, baserate, swaprate, swapusedlabel, ratecardresults, Swapratedateresults, missingselection, ratetyperesult, base_field, true_base, dp_field, dp_base, ef_field, ef_base, buyer_header
+    global current_credit_policy_results, rate_card_df, swapbaserate, baserate, swaprate, swapusedlabel, ratecardresults, Swapratedateresults, ratetyperesult, base_field, true_base, dp_field, dp_base, ef_field, ef_base, buyer_header
 
     current_credit_policy_results = {}
 
+    down_payment_fee_dict = {'Y': 0.0025, 'N': 0.00, 'N/A': 0.00}
 
     if recommit =="Y":
         temp_base_spread = spreads_df.loc[
@@ -451,7 +466,6 @@ def current_credit_policy():
 
         }
         return (current_credit_policy_results, rate_card_df)
-        print('current_credit_policy_recommit')
     else:
         today = datetime.datetime.today().strftime('%m/%d/%Y')
 
@@ -508,12 +522,12 @@ def current_credit_policy():
             'loan_buyer_dp': loan_buyer_dp
 
         }
-        print('current_credit_policy_new')
         return(current_credit_policy_results, rate_card_df)
     return
 
 def previous_credit_policy():
-    global previous_credit_policy_results, rate_card_df, swapbaserate, baserate, swaprate, swapusedlabel, ratecardresults, Swapratedateresults, missingselection, base_field, true_base, dp_field, dp_base, ef_field, ef_base, buyer_header
+    global previous_credit_policy_results, rate_card_df, swapbaserate, baserate, swaprate, swapusedlabel, ratecardresults, Swapratedateresults, base_field, true_base, dp_field, dp_base, ef_field, ef_base, buyer_header
+
 
 
     if userselection_pricing== 'Pro Forma':
@@ -590,12 +604,10 @@ def previous_credit_policy():
             'loan_buyer_dp': loan_buyer_dp
 
         }
-        print('old_credit_policy_pro_forma')
         return(previous_credit_policy_results, rate_card_df)
 
 
     else:
-        print('old_credit_policy_cash_flow')
         previous_credit_policy_results = {}
 
         temp_base_spread = spreads_df.loc[
