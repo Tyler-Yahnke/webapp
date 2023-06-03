@@ -43,6 +43,7 @@ def create_app():
 
     return application
 
+'''
 def create_database(application):
     with application.app_context():
         with open('creds.json', 'r') as file:
@@ -92,3 +93,4 @@ application = create_app()
 
 if __name__ == '__main__':
     application.run(debug=True)
+'''
