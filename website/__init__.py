@@ -1,5 +1,6 @@
 from flask import Flask, current_app
 from flask_sqlalchemy import SQLAlchemy
+from flask_sslify import SSLify
 from os import path
 from flask_login import LoginManager
 from google.oauth2 import service_account
