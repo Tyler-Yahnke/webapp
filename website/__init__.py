@@ -1,6 +1,6 @@
 from flask import Flask, current_app
 from flask_sqlalchemy import SQLAlchemy
-from flask_sslify import SSLify
+#from flask_sslify import SSLify
 from os import path
 from flask_login import LoginManager
 from google.oauth2 import service_account
@@ -13,7 +13,7 @@ APC_DB = "APC_Database.db"
 
 def create_app():
     application = Flask(__name__)
-    sslify = SSLify(application)
+    #sslify = SSLify(application)
     application.config['SECRET_KEY'] = '54ge5rg4e4eshg4serthg4s5h4esr8t674'
     #application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{path.join(ABSOLUTE_PATH, APC_DB)}'
     application.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{APC_DB}'
