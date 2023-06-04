@@ -62,14 +62,14 @@ def password_reset():
             user = User.query.filter_by(email=email).first()
 
             if user:
-                check_password_hash(user.secret_key, secret_key)
-                flash('Secret Key is incorrect or expired', category='error')
-            elif user:
-                user.password = generate_password_hash(password1, method='scrypt')
-                db.session.commit()
-                login_user(user, remember=True)
-                flash('Password Updated Successfully!', category='success')
-                return redirect(url_for('views.home'))
+                if check_password_hash(user.secret_key, secret_key):
+                    user.password = generate_password_hash(password1, method='scrypt')
+                    db.session.commit()
+                    login_user(user, remember=True)
+                    flash('Password Updated Successfully!', category='success')
+                    return redirect(url_for('views.home'))
+                else:
+                    flash('Secret Key is incorrect or expired', category='error')
             else:
                 flash('User does not exist.', category='error')
 
@@ -82,7 +82,6 @@ def generate_reset_token():
 
     if user:
         token = secrets.token_urlsafe(5)
-        print(token)
 
         user.secret_key = generate_password_hash(token, method='scrypt')
         db.session.commit()
@@ -99,6 +98,6 @@ def email_token(token):
 
 
     msg = Message('Password Reset - Secuirty Key', sender='passwordreset@apcratecard.com', recipients=recipients)
-    msg.body = 'Copy your Security Key to reset password: "{token}"'
-    print(msg.body)
+    msg.body = f'Secret Key: "{token}"'
+
     mail.send(msg)
