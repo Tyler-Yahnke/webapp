@@ -20,7 +20,7 @@ def login():
 
         if user:
             if check_password_hash(user.password, password):
-                flash('Logged in successfully!', category='success')
+                flash(f'Logged in successfully! Welcome {user.name}', category='success')
                 login_user(user, remember=True)
                 return redirect(url_for('views.home'))
             else:
@@ -66,7 +66,7 @@ def password_reset():
                     user.password = generate_password_hash(password1, method='scrypt')
                     db.session.commit()
                     login_user(user, remember=True)
-                    flash('Password Updated Successfully!', category='success')
+                    flash(f'Password Updated Successfully! Welcome {user.name}', category='success')
                     return redirect(url_for('views.home'))
                 else:
                     flash('Secret Key is incorrect or expired', category='error')
