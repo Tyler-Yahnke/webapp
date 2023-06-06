@@ -1,7 +1,5 @@
-{% extends "base.html" %} {% block title %}Login{% endblock %} {% block content
-%}
-<head>
-  <style>
+{% extends "base.html" %} {% block title %}Login{% endblock %} {% block content%}
+<style>
   .button-container {
     display: flex;
     justify-content: space-between;
@@ -15,7 +13,7 @@
     margin-right: 10px;
   }
 </style>
-</head>
+
 <form method="POST">
   <h3 align="center">Login</h3>
   <div class="form-group">
@@ -39,30 +37,27 @@
     />
   </div>
 
-  <br />
-
 <div class="button-container">
   <button type="submit" class="btn btn-primary">Login</button>
-
   <div class="right-buttons">
-    <button type="button" class="btn btn-primary" id="first_time_user">First Time User</button>
-    <button type="button" class="btn btn-primary" id="password_reset">Password Reset</button>
+    <button type="button" class="btn btn-primary" id="passwordReset">Password Reset</button>
+    <button type="button" class="btn btn-primary" id="firstTimeUser">First Time User</button>
   </div>
 </div>
 
 <script>
-  const passwordResetButton = document.getElementById('password_reset');
+  const passwordResetButton = document.getElementById('passwordReset');
   passwordResetButton.addEventListener('click', () => {
-    window.location.href = '/password_reset';
+    window.location.href = '/password_reset'; //
+  });
+</script>
+  <script>
+  const NewUserButton = document.getElementById('firstTimeUser');
+  NewUserButton.addEventListener('click', () => {
+    window.location.href = '/password_reset'; //
   });
 </script>
 
-  <script>
-  const first_time_user_button = document.getElementById('first_time_user');
-  first_time_user_button.addEventListener('click', () => {
-    window.location.href = '/password_reset';
-  });
-</script>
 
 </form>
 {% endblock %}
