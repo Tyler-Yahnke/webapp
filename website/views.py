@@ -108,6 +108,16 @@ def home():
         prime_process_date = datetime.datetime(2023, 2, 6)
         all_prime = datetime.datetime(2023, 5, 4)
 
+        if userselection_bridge_loan == 'Y':
+            bridge_loan_func()
+            results = bridge_results
+            return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
+
+        if userselection_scooters == 'Y':
+            scooters_func()
+            results = scooters_results
+            return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
+
         if recommit == 'Y':
 
             selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
@@ -330,8 +340,8 @@ def datapull():
 
 
 def bridge_loan_func():
-    global bridgeresults
-    bridgeresults = {
+    global bridge_results
+    bridge_results = {
     'index_rate_used': 'Prime',
     'rate_card_used': 'Pro Forma',
     'final_rate': float(prime_df.Rate[0].rstrip("%")) + float(bridge_df.Rate[0].rstrip("%")),
@@ -339,9 +349,10 @@ def bridge_loan_func():
     'index_rate': prime_df.Rate[0],
     'index_rate_date': prime_df.Date[0],
     'rate_type': 'Fixed'}
+    return(bridge_results)
 
 def scooters_func():
-    global scootersresults
+    global scooters_results
     scooters_date = datetime.datetime(2023, 4, 6)
 
     if recommit == 'Y' and datetime.datetime.strptime(selected_date, "%Y-%m-%d") < scooters_date:
@@ -355,7 +366,7 @@ def scooters_func():
             loan_buyer_spread =f"{100 * temp_base_spread: .2f}%"
             loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
 
-            scootersresults = {
+            scooters_results = {
                 'index_rate_used': 'Prime',
                 'rate_card_used': 'Scooters Pricing',
                 'final_rate': f"{100 * final_spread: .2f}%",
@@ -367,7 +378,7 @@ def scooters_func():
                 'loan_buyer_fee' : loan_buyer_fee
 
             }
-
+            return (scooters_results)
     else:
         temp_base_spread = 1.5 / 100
         temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
@@ -379,7 +390,7 @@ def scooters_func():
         loan_buyer_spread = f"{100 * temp_base_spread: .2f}%"
         loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
 
-        scootersresults = {
+        scooters_results = {
             'index_rate_used': 'Prime',
             'rate_card_used': 'Scooters Pricing',
             'final_rate': f"{100 * final_spread: .2f}%",
@@ -390,6 +401,7 @@ def scooters_func():
             'loan_buyer_spread': loan_buyer_spread,
             'loan_buyer_fee': loan_buyer_fee
         }
+        return (scooters_results)
 
 def current_credit_policy():
     print('new process')

@@ -42,9 +42,13 @@ def logout():
 @auth.route('/password_reset', methods=['GET', 'POST'])
 def password_reset():
     button = request.form.get('secret_key')
+
+    prev_data = {}
+
     if button == 'Email Secret Key':
         generate_reset_token()
-        return render_template("password_reset.html", user=current_user)
+        prev_data = user_email_reset
+        return render_template("password_reset.html", user=current_user, prev_data=prev_data)
     else:
         pass
 
@@ -53,6 +57,7 @@ def password_reset():
         secret_key = request.form.get('secret_key')
         password1 = request.form.get('password1')
         password2 = request.form.get('password2')
+
 
         if password1 != password2:
             flash('Passwords don\'t match.', category='error')
@@ -73,12 +78,15 @@ def password_reset():
             else:
                 flash('User does not exist.', category='error')
 
-    return render_template("password_reset.html", user=current_user)
+    return render_template("password_reset.html", user=current_user, prev_data=prev_data)
 
 def generate_reset_token():
+    global user_email_reset
     email = request.form.get('email')
 
     user = User.query.filter_by(email=email).first()
+
+    user_email_reset = {'email' : request.form.get('email')}
 
     if user:
         token = secrets.token_urlsafe(5)
@@ -87,12 +95,14 @@ def generate_reset_token():
         db.session.commit()
         email_token(token)
         flash('Please check email for Secret Key', category='success')
+        return (user_email_reset)
     else:
         flash('Email is invalid or blank', category='error')
 
 
 def email_token(token):
     email = request.form.get('email')
+
     user = User.query.filter_by(email=email).first()
     recipients = [user.email]
 
