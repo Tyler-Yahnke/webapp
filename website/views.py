@@ -319,7 +319,7 @@ def datapull():
                                               '84/120': '5 Year',
                                               '120/120': '5 Year'}
 
-                    down_payment_fee_dict = {'Y': 0.0025, 'N': 0.00, 'N/A': 0.00}
+                    down_payment_fee_dict = {'Y': 0.0025, 'N': 0.00, 'NA': 0.00}
 
                 except:
                     fail_string = 'Failed pulling swap values'
@@ -353,9 +353,38 @@ def bridge_loan_func():
 
 def scooters_func():
     global scooters_results
-    scooters_date = datetime.datetime(2023, 4, 6)
 
-    if recommit == 'Y' and datetime.datetime.strptime(selected_date, "%Y-%m-%d") < scooters_date:
+    scooters_date = datetime.datetime(2023, 4, 7)
+    today = datetime.datetime.today()
+    selected_date = request.form.get('selected_date')
+    selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
+
+    if (today - selected_date).days > 120:
+        flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
+        temp_base_spread = 1.5 / 100
+        temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
+            "%").astype(float) / 100
+        # 2/14/2023 Adding Logic Here
+        base_spread = round(temp_base_spread + temp_embedded.iloc[0], 4)
+        final_spread = round(base_spread + float(prime_df.Rate[0].rstrip("%")) / 100, 4)
+
+        loan_buyer_spread = f"{100 * temp_base_spread: .2f}%"
+        loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
+
+        scooters_results = {
+            'index_rate_used': 'Prime',
+            'rate_card_used': 'Scooters Pricing',
+            'final_rate': f"{100 * final_spread: .2f}%",
+            'spread_rate': f"{100 * base_spread: .2f}%",
+            'index_rate': prime_df.Rate[0],
+            'index_rate_date': prime_df.Date[0],
+            'rate_type': 'Fixed',
+            'loan_buyer_spread': loan_buyer_spread,
+            'loan_buyer_fee': loan_buyer_fee
+        }
+        return (scooters_results)
+
+    elif recommit == 'Y' and datetime.datetime.strptime(selected_date, "%Y-%m-%d") < scooters_date:
             temp_base_spread = 0.75 / 100
             temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
                 "%").astype(float) / 100
