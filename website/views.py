@@ -257,7 +257,7 @@ def swap_updates():
     print('swap updates end')
 
 def datapull():
-    global spreads_df, ef_df, daily_swap_df, swap_spread_dic, swap_spread_dic_define, api_failure, fail_string, prime_df, bridge_df, down_payment_fee_dict
+    global spreads_df, ef_df, daily_swap_df, swap_spread_dic, swap_spread_dic_define, api_failure, fail_string, prime_df, down_payment_fee_dict
 
     with open('creds.json', 'r') as file:
         cred = json.load(file)
@@ -277,14 +277,12 @@ def datapull():
             ef = rate_file.worksheet_by_title('EmbeddedFee')
             daily = rate_file.worksheet_by_title('Dailyswaps')
             prime = rate_file.worksheet_by_title('PrimeRate')
-            hb = rate_file.worksheet_by_title('Historical Bridge')
 
             try:
                 spreads_df = spreads.get_as_df()
                 ef_df = ef.get_as_df()
                 daily_swap_df = daily.get_as_df()
                 prime_df = prime.get_as_df()
-                bridge_df = hb.get_as_df()
 
                 try:
                     Prev_Biz_Day = datetime.datetime.today() - BDay(1)
@@ -344,8 +342,8 @@ def bridge_loan_func():
     bridge_results = {
     'index_rate_used': 'Prime',
     'rate_card_used': 'Pro Forma',
-    'final_rate': float(prime_df.Rate[0].rstrip("%")) + float(bridge_df.Rate[0].rstrip("%")),
-    'spread_rate': bridge_df.Rate[0],
+    'final_rate': f"{float(prime_df.Rate[0].rstrip('%')) + float(3.5)}%",
+    'spread_rate': '3.5%',
     'index_rate': prime_df.Rate[0],
     'index_rate_date': prime_df.Date[0],
     'rate_type': 'Fixed'}
