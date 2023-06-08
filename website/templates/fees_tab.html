@@ -111,12 +111,12 @@
       </tr>
     </thead>
     <tbody>
-{% for index, row in fees_table.iterrows() %}
+{% for discount in discount_table%}
       <tr>
-        <td>{{ row['Brand'] }}</td>
-        <td>{{ row['0 - 750K'] }}</td>
-        <td>{{ row['751K - 1.5M'] }}</td>
-        <td>{{ row['1.5M+'] }}</td>
+        <td>{{ discount.Brand }}</td>
+        <td>{{ discount.low }}</td>
+        <td>{{ discount.medium }}</td>
+        <td>{{ discount.high }}</td>
       </tr>
       {% endfor %}
     </tbody>

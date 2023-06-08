@@ -11,4 +11,11 @@ class User(db.Model, UserMixin):
     is_active = db.Column(db.String(45))
     secret_key = db.Column(db.String(45))
 
+class Discounts(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    Brand = db.Column(db.String(45), unique=True)
+    low = db.Column(db.String(45))
+    medium = db.Column(db.String(50))
+    high = db.Column(db.String(45))
+
 
