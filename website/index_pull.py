@@ -1,3 +1,9 @@
+import pymysql
+from datetime import date
+from datetime import datetime
+from pandas.tseries.offsets import BDay
+import requests
+
 def index_rate_updates():
     # Connect to the database
     connection = pymysql.connect(
@@ -29,7 +35,6 @@ def index_rate_updates():
 
         payload = {}
         headers = {}
-        print(row['Date'])
         response = requests.request("GET", url, headers=headers, data=payload)
 
         for symbols in response.json()['results']:
