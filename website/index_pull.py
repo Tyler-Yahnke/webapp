@@ -18,7 +18,7 @@ def index_rate_updates():
     cursor = connection.cursor()
 
     # Execute SQL queries
-    sql = "SELECT * FROM ebdb.Swaprate order by Date desc"
+    sql = "SELECT * FROM ebdb.swap_rate order by Date desc"
     cursor.execute(sql)
 
     # Grabbing First Row
@@ -52,7 +52,7 @@ def index_rate_updates():
         new_vals = [swap_date_str, "{:.2%}".format(swap_3year), "{:.2%}".format(swap_4year), "{:.2%}".format(swap_5year)]
 
         sql = """
-                INSERT INTO ebdb.Swaprate (`Date`, `3Year`,`4Year`,`5Year`)
+                INSERT INTO ebdb.swap_rate (`Date`, `3Year`,`4Year`,`5Year`)
                 VALUES (%s, %s, %s, %s)
             """
         cursor.execute(sql, new_vals)

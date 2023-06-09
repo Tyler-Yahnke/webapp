@@ -8,9 +8,11 @@ import pandas as pd
 import json
 import requests
 import dateutil.parser
+from .models import swap_rate
 
 
 from . import db
+
 
 views = Blueprint('views', __name__)
 

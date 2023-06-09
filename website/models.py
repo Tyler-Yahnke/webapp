@@ -19,4 +19,10 @@ class Discounts(db.Model):
     medium = db.Column(db.String(50))
     high = db.Column(db.String(45))
 
+class swap_rate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    Date = db.Column(db.String(45), unique=True)
+    three_Year = db.Column('3Year',db.String(45))
+    four_Year = db.Column('4Year',db.String(50))
+    five_Year = db.Column('5Year',db.String(45))
 
