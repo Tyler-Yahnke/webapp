@@ -50,7 +50,7 @@ def create_app():
     application.config['SCHEDULER_API_ENABLED'] = True
     scheduler.init_app(application)
 
-    @scheduler.task('cron', id='index_update', day_of_week='*', hour=19, minute=03, timezone=timezone('US/Pacific'))
+    @scheduler.task('cron', id='index_update', day_of_week='*', hour=19, minute=20, timezone=timezone('US/Pacific'))
     def index_update():
         index_rate_updates()
 
