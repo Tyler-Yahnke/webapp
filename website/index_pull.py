@@ -71,7 +71,7 @@ def index_rate_updates():
     cursor = connection.cursor()
 
     # Execute SQL queries
-    sql = "SELECT * FROM ebdb.PrimeRate order by Date desc"
+    sql = "SELECT * FROM ebdb.prime_rate order by Date desc"
     cursor.execute(sql)
 
     # Grabbing First Row
@@ -97,7 +97,7 @@ def index_rate_updates():
         new_prime_vals = [prime_date_str, "{:.2%}".format(prime_rate)]
 
         sql = """
-                    INSERT INTO ebdb.PrimeRate (`Date`,`Rate`)
+                    INSERT INTO ebdb.prime_rate (`Date`,`Rate`)
                     VALUES (%s, %s)
                 """
 

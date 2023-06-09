@@ -8,7 +8,7 @@ import pandas as pd
 import json
 import requests
 import dateutil.parser
-from .models import swap_rate
+from .models import SwapRate, PrimeRate, Spreads, EmbeddedFee
 
 
 from . import db
@@ -22,6 +22,10 @@ views = Blueprint('views', __name__)
 def home():
     global recommit, userselection_scooters,userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date
 
+    print(SwapRate.query.first())
+    print(PrimeRate.query.first())
+    print(Spreads.query.first())
+    print(EmbeddedFee.query.first())
 
 
     data = {'Month':[''],

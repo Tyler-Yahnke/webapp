@@ -19,10 +19,36 @@ class Discounts(db.Model):
     medium = db.Column(db.String(50))
     high = db.Column(db.String(45))
 
-class swap_rate(db.Model):
+class SwapRate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Date = db.Column(db.String(45), unique=True)
     three_Year = db.Column('3Year',db.String(45))
     four_Year = db.Column('4Year',db.String(50))
     five_Year = db.Column('5Year',db.String(45))
 
+class PrimeRate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    Date = db.Column(db.String(45), unique=True)
+    Rate = db.Column(db.String(45))
+
+class EmbeddedFee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    Fee_Buy_Down = db.Column(db.String(45), unique=True)
+    _60_60 = db.Column('60/60', db.String(45))
+    _60_84 = db.Column('60/84', db.String(45))
+    _84_84 = db.Column('84/84', db.String(45))
+    _84_120 = db.Column('84/120', db.String(45))
+    _120_120 = db.Column('120/120', db.String(45))
+
+class Spreads(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    PricingBasis = db.Column(db.String(45), unique=True)
+    Month = db.Column(db.String(45))
+    _60_60 = db.Column('60/60', db.String(45))
+    _60_84 = db.Column('60/84', db.String(45))
+    _84_84 = db.Column('84/84', db.String(45))
+    _84_120 = db.Column('84/120', db.String(45))
+    _120_120 = db.Column('120/120', db.String(45))
+    Start = db.Column(db.String(45))
+    End = db.Column(db.String(45))
+    RateType = db.Column(db.String(45))
