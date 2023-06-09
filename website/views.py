@@ -9,6 +9,7 @@ import json
 import requests
 import dateutil.parser
 
+
 from . import db
 
 views = Blueprint('views', __name__)
