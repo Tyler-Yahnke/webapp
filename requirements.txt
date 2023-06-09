@@ -7,6 +7,7 @@ cryptography==38.0.3
 DateTime==4.7
 docutils==0.20.1
 Flask==2.3.2
+Flask-APScheduler==1.12.4
 Flask-Login==0.6.2
 FLask-Mail==0.9.1
 Flask-SQLAlchemy==3.0.3
