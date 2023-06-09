@@ -2,9 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
-from flask_apscheduler import APScheduler
-from pytz import timezone
-from .index_pull import index_rate_updates
+
 
 db = SQLAlchemy()
 mail = Mail()
@@ -45,16 +43,7 @@ def create_app():
     login_manager.login_view = 'auth.login'
     login_manager.init_app(application)
 
-    #scheduler
-    scheduler = APScheduler()
-    application.config['SCHEDULER_API_ENABLED'] = True
-    scheduler.init_app(application)
 
-    @scheduler.task('cron', id='index_update', day_of_week='*', hour=19, minute=20, timezone=timezone('US/Pacific'))
-    def index_update():
-        index_rate_updates()
-
-    scheduler.start()
 
     @login_manager.user_loader
     def load_user(id):
