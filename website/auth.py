@@ -22,6 +22,8 @@ def login():
             if check_password_hash(user.password, password):
                 flash(f'Logged in successfully! Welcome {user.name}', category='success')
                 login_user(user, remember=True)
+                user.logged_in = True
+                db.session.commit()
                 return redirect(url_for('views.home'))
             else:
                 flash('Incorrect password, try again.', category='error')
@@ -35,6 +37,8 @@ def login():
 @auth.route('/logout')
 @login_required
 def logout():
+    current_user.logged_in = False  # Update the logged_in attribute for the current user
+    db.session.commit()
     logout_user()
     return redirect(url_for('auth.login'))
 
