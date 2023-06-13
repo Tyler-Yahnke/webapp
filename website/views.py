@@ -364,7 +364,10 @@ def scooters_func():
     scooters_date = datetime.datetime(2023, 4, 7)
     today = datetime.datetime.today()
     selected_date = request.form.get('selected_date')
-    selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
+    if selected_date == "":
+        selected_date = datetime.datetime.today()
+    else:
+        selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
 
     if (today - selected_date).days > 120:
         flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
