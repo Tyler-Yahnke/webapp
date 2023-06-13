@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from .models import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import db, mail
 from flask_login import login_user, login_required, logout_user, current_user
 import secrets
 from flask_mail import Message
+from datetime import datetime
 
 
 
@@ -20,9 +21,13 @@ def login():
 
         if user:
             if check_password_hash(user.password, password):
+                session['logged_in'] = True
+                session.permanent = True
                 flash(f'Logged in successfully! Welcome {user.name}', category='success')
                 login_user(user, remember=True)
                 user.logged_in = True
+                user.last_login_date = datetime.now()
+                session['user_id'] = user.id
                 db.session.commit()
                 return redirect(url_for('views.home'))
             else:
@@ -39,6 +44,7 @@ def login():
 def logout():
     current_user.logged_in = False  # Update the logged_in attribute for the current user
     db.session.commit()
+    session.pop('user_id', None)  # Remove the user's id from the session
     logout_user()
     return redirect(url_for('auth.login'))
 
@@ -73,6 +79,9 @@ def password_reset():
             if user:
                 if check_password_hash(user.secret_key, secret_key):
                     user.password = generate_password_hash(password1, method='scrypt')
+                    user.last_password_update = datetime.now()
+                    user.last_login_date = datetime.now()
+                    user.logged_in = True
                     db.session.commit()
                     login_user(user, remember=True)
                     flash(f'Password Updated Successfully! Welcome {user.name}', category='success')

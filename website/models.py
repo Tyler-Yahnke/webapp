@@ -10,8 +10,10 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(50))
     is_active = db.Column(db.String(45))
     secret_key = db.Column(db.String(45))
-    last_password_update = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_password_update = db.Column(db.DateTime)
     logged_in = db.Column(db.String(45))
+    last_login_date = db.Column(db.DateTime)
+    last_activity = db.Column(db.DateTime)
 
 class Discounts(db.Model):
     id = db.Column(db.Integer, primary_key=True)
