@@ -9,6 +9,7 @@ import json
 import requests
 import dateutil.parser
 from .models import SwapRate, PrimeRate, Spreads, EmbeddedFee
+from sqlalchemy import desc, and_
 
 
 from . import db
@@ -342,18 +343,23 @@ def datapull():
 
 def bridge_loan_func():
     global bridge_results
+    prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()
+
+
     bridge_results = {
     'index_rate_used': 'Prime',
     'rate_card_used': 'Pro Forma',
-    'final_rate': f"{float(prime_df.Rate[0].rstrip('%')) + float(3.5)}%",
+    'final_rate': f"{float(prime_rate.Rate) + float(3.5)}%",
     'spread_rate': '3.5%',
-    'index_rate': prime_df.Rate[0],
-    'index_rate_date': prime_df.Date[0],
+    'index_rate': f"{prime_rate.Rate}%",
+    'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
     'rate_type': 'Fixed'}
     return(bridge_results)
 
 def scooters_func():
     global scooters_results
+    prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()
+
 
     scooters_date = datetime.datetime(2023, 4, 7)
     today = datetime.datetime.today()
@@ -365,7 +371,6 @@ def scooters_func():
         temp_base_spread = 1.5 / 100
         temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
             "%").astype(float) / 100
-        # 2/14/2023 Adding Logic Here
         base_spread = round(temp_base_spread + temp_embedded.iloc[0], 4)
         final_spread = round(base_spread + float(prime_df.Rate[0].rstrip("%")) / 100, 4)
 
@@ -377,15 +382,15 @@ def scooters_func():
             'rate_card_used': 'Scooters Pricing',
             'final_rate': f"{100 * final_spread: .2f}%",
             'spread_rate': f"{100 * base_spread: .2f}%",
-            'index_rate': prime_df.Rate[0],
-            'index_rate_date': prime_df.Date[0],
+            'index_rate': f"{prime_rate.Rate}%",
+            'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
             'rate_type': 'Fixed',
             'loan_buyer_spread': loan_buyer_spread,
             'loan_buyer_fee': loan_buyer_fee
         }
         return (scooters_results)
 
-    elif recommit == 'Y' and datetime.datetime.strptime(selected_date, "%Y-%m-%d") < scooters_date:
+    elif recommit == 'Y' and selected_date < scooters_date:
             temp_base_spread = 0.75 / 100
             temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
                 "%").astype(float) / 100
@@ -401,8 +406,8 @@ def scooters_func():
                 'rate_card_used': 'Scooters Pricing',
                 'final_rate': f"{100 * final_spread: .2f}%",
                 'spread_rate': f"{100 * base_spread: .2f}%",
-                'index_rate': prime_df.Rate[0],
-                'index_rate_date': prime_df.Date[0],
+                'index_rate': f"{prime_rate.Rate}%",
+                'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
                 'rate_type': userselection_ratetype,
                 'loan_buyer_spread': loan_buyer_spread,
                 'loan_buyer_fee' : loan_buyer_fee
@@ -425,8 +430,8 @@ def scooters_func():
             'rate_card_used': 'Scooters Pricing',
             'final_rate': f"{100 * final_spread: .2f}%",
             'spread_rate': f"{100 * base_spread: .2f}%",
-            'index_rate': prime_df.Rate[0],
-            'index_rate_date': prime_df.Date[0],
+            'index_rate': f"{prime_rate.Rate}%",
+            'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
             'rate_type': 'Fixed',
             'loan_buyer_spread': loan_buyer_spread,
             'loan_buyer_fee': loan_buyer_fee

@@ -1,4 +1,5 @@
 {% extends "base.html" %} {% block title %}Login{% endblock %} {% block content%}
+<head>
 <style>
   .button-container {
     display: flex;
@@ -12,11 +13,24 @@
   .button-container .right-buttons button {
     margin-right: 10px;
   }
+
+          .form-container {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            background-color: rgba(200, 200, 200, 0.8);
+            border-radius: 10px;
+            padding: 10px;
+
+        }
+
 </style>
+</head>
+
 
 <form method="POST">
   <h3 align="center">Login</h3>
-  <div class="form-group">
+    <div class="form-container">
     <label for="email">Email Address</label>
     <input
       type="email"
@@ -25,8 +39,7 @@
       name="email"
       placeholder="Enter email"
     />
-  </div>
-  <div class="form-group">
+
     <label for="password">Password</label>
     <input
       type="password"
@@ -35,7 +48,8 @@
       name="password"
       placeholder="Enter password"
     />
-  </div>
+    <input type="checkbox" onclick="myFunction()">Show Password</input>
+</div>
 
 <div class="button-container">
   <button type="submit" class="btn btn-primary">Login</button>
@@ -44,6 +58,7 @@
     <button type="button" class="btn btn-primary" id="firstTimeUser">First Time User</button>
   </div>
 </div>
+
 
 <script>
   const passwordResetButton = document.getElementById('passwordReset');
@@ -56,6 +71,17 @@
   NewUserButton.addEventListener('click', () => {
     window.location.href = '/password_reset'; //
   });
+</script>
+
+  <script>
+function myFunction() {
+  var x = document.getElementById("password");
+  if (x.type === "password") {
+    x.type = "text";
+  } else {
+    x.type = "password";
+  }
+}
 </script>
 
 
