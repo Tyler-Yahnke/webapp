@@ -1,17 +1,11 @@
 from flask import Blueprint, render_template, request, flash, jsonify
 from flask_login import login_required, current_user
-from google.oauth2 import service_account
 import datetime
 from pandas.tseries.offsets import BDay
-import pygsheets
-import pandas as pd
-import json
 import requests
-import dateutil.parser
 from .models import SwapRate, PrimeRate, Spreads, EmbeddedFee
 from sqlalchemy import desc, and_
-
-
+import pandas as pd
 from . import db
 
 
@@ -21,7 +15,7 @@ views = Blueprint('views', __name__)
 @views.route('/ratecard', methods=['GET', 'POST'])
 @login_required
 def home():
-    global recommit, userselection_scooters,userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date
+    global recommit, today, prime_rate, userselection_scooters,userselection_term_missing, userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date, down_payment_fee_dict
 
 
 
@@ -87,12 +81,12 @@ def home():
         userselection_scooters = request.form.get('scooters_coffee')
         userselection_bridge_loan = request.form.get('bridge_loan')
         userselection_ratetype = request.form.get('rate_type')
-        userselection_term = request.form.get('term')
         userselection_fee = request.form.get('embedded_fee')
         userselection_pricing = request.form.get('pricing_basis')
         userselection_grade = request.form.get('investment_grade')
         userselection_dp = request.form.get('down_payment')
         selected_date =request.form.get('selected_date')
+        userselection_term_missing = request.form.get('term')
 
         if selected_date == '' and recommit == 'Y':
             flash('Date Selection Required or Update Recommit to N', category='error')
@@ -106,11 +100,21 @@ def home():
         else:
             pass
 
-        datapull()
+        term_dict = {
+            '60/60': 'term_60_60',
+            '60/84': 'term_60_84',
+            '84/84': 'term_84_84',
+            '84/120': 'term_84_120',
+            '120/120': 'term_120_120'
+        }
+        userselection_term = term_dict.get(request.form.get('term'))
 
+        down_payment_fee_dict = {'Y': 0.25, 'N': 0.00, 'NA': 0.00}
+
+        prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()
         today = datetime.datetime.today()
-        prime_process_date = datetime.datetime(2023, 2, 6)
         all_prime = datetime.datetime(2023, 5, 4)
+
 
         if userselection_bridge_loan == 'Y':
             bridge_loan_func()
@@ -129,6 +133,7 @@ def home():
             if (today - selected_date).days > 120:
                 flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
                 current_credit_policy()
+                rate_card()
                 results = current_credit_policy_results
                 rate_card_table = rate_card_df
                 return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
@@ -137,7 +142,8 @@ def home():
                 flash('Can\'t select a future date', category='error')
                 return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
-            elif selected_date > prime_process_date and selected_date <= all_prime:
+            elif selected_date <= all_prime and userselection_pricing=='Cash Flow':
+                # Previous credit policy can be removed after 9/2/2023
                 previous_credit_policy()
                 results = previous_credit_policy_results
                 rate_card_table = rate_card_df
@@ -145,12 +151,14 @@ def home():
 
             else:
                 current_credit_policy()
+                rate_card()
                 results = current_credit_policy_results
                 rate_card_table = rate_card_df
                 return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
         else:
             current_credit_policy()
+            rate_card()
             results = current_credit_policy_results
             rate_card_table = rate_card_df
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
@@ -160,7 +168,7 @@ def home():
     return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
 def missing():
-    if userselection_term == 'Make Selection':
+    if userselection_term_missing == 'Make Selection':
         flash('Missing term', category='error')
         return 'Missing'
     elif userselection_fee == 'Make Selection':
@@ -177,180 +185,14 @@ def missing():
         return 'Missing'
     return None
 
-
-def swap_updates():
-    print('swap updates begin')
-    url = "https://ondemand.websol.barchart.com/getQuote.json?apikey=f662dbbcc2a45be5307136cb8e74da08&symbols=SWAEADY3.RT, SWAEADY5.RT, WSJPRIME.RT"
-
-    payload = {}
-    headers = {}
-
-    response = requests.request("GET", url, headers=headers, data=payload)
-
-
-
-    with open('creds.json', 'r') as file:
-        cred = json.load(file)
-
-
-
-    SCOPES = ('https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive')
-    my_credentials = service_account.Credentials.from_service_account_info(cred, scopes=SCOPES)
-
-    gc = pygsheets.authorize(custom_credentials=my_credentials)
-    rate_file = gc.open_by_key('13MUnNC1va0bEE_fGU5P0RFLHf-CEqWxOVk6YmEVwB1c')
-
-    daily = rate_file.worksheet_by_title('Dailyswaps')
-
-
-
-    for symbols in response.json()['results']:
-        if symbols['symbol'] == 'SWAEADY3.RT':
-            swap_3year = symbols['lastPrice']
-            date_3year_str = symbols['tradeTimestamp']
-
-        elif symbols['symbol'] == 'SWAEADY5.RT':
-            swap_5year = symbols['lastPrice']
-            date_5year_str = symbols['tradeTimestamp']
-
-    swap_4year = round((swap_3year + swap_5year), 4) / 2
-
-
-
-    date_3year = dateutil.parser.parse(date_3year_str).strftime('%m/%d/%Y')
-
-    date_5year = dateutil.parser.parse(date_5year_str).strftime('%m/%d/%Y')
-
-
-    new_vals = [date_3year, "{:.2%}".format(swap_3year), "{:.2%}".format(swap_4year), "{:.2%}".format(swap_5year)]
-
-    daily_swap_df = daily.get_as_df()
-    most_recent_date = daily_swap_df['Date'].iloc[0]
-
-
-
-    if most_recent_date != date_3year:
-        daily.insert_rows(row=1, number=1, values=new_vals)
-
-    elif most_recent_date == date_3year:
-        pass
-
-    # Pulling in prime rate and updating table
-    daily_prime = rate_file.worksheet_by_title('PrimeRate')
-
-
-    for symbols in response.json()['results']:
-        if symbols['symbol'] == 'WSJPRIME.RT':
-            prime_rate = symbols['lastPrice']
-            prime_rate_str = symbols['tradeTimestamp']
-
-
-
-    prime_rate_date = dateutil.parser.parse(prime_rate_str).strftime('%m/%d/%Y')
-
-    new_prime_vals = [prime_rate_date, "{:.2%}".format(prime_rate)]
-
-
-
-    daily_prime_df = daily_prime.get_as_df()
-    most_recent_date = daily_prime_df['Date'].iloc[0]
-
-    if most_recent_date != prime_rate_date:
-        daily_prime.insert_rows(row=1, number=1, values=new_prime_vals)
-
-    print('swap updates end')
-
-def datapull():
-    global spreads_df, ef_df, daily_swap_df, swap_spread_dic, swap_spread_dic_define, api_failure, fail_string, prime_df, down_payment_fee_dict
-
-    with open('creds.json', 'r') as file:
-        cred = json.load(file)
-
-    SCOPES = ('https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive')
-    my_credentials = service_account.Credentials.from_service_account_info(cred, scopes=SCOPES)
-
-    # Call the Sheets API
-    api_failure = 0
-    fail_string = ''
-    try:
-        gc = pygsheets.authorize(custom_credentials=my_credentials)
-        rate_file = gc.open_by_key('13MUnNC1va0bEE_fGU5P0RFLHf-CEqWxOVk6YmEVwB1c')
-
-        try:
-            spreads = rate_file.worksheet_by_title('Spreads')
-            ef = rate_file.worksheet_by_title('EmbeddedFee')
-            daily = rate_file.worksheet_by_title('Dailyswaps')
-            prime = rate_file.worksheet_by_title('PrimeRate')
-
-            try:
-                spreads_df = spreads.get_as_df()
-                ef_df = ef.get_as_df()
-                daily_swap_df = daily.get_as_df()
-                prime_df = prime.get_as_df()
-
-                try:
-                    Prev_Biz_Day = datetime.datetime.today() - BDay(1)
-                    formatted_dt = Prev_Biz_Day.strftime('%m/%d/%Y')
-
-
-                    if daily_swap_df['Date'][0] != (formatted_dt):
-                        swap_updates()
-                        daily = rate_file.worksheet_by_title('Dailyswaps')
-                        daily_swap_df = daily.get_as_df()
-
-                    elif prime_df['Date'][0] != (formatted_dt):
-                        swap_updates()
-                        prime = rate_file.worksheet_by_title('PrimeRate')
-                        prime_df = prime.get_as_df()
-                    else:
-                        pass
-
-                    swap_3year = round(float(daily_swap_df.iloc[0]['3Year'][:-1]) / 100, 4)
-                    swap_4year = round(float(daily_swap_df.iloc[0]['4Year'][:-1]) / 100, 4)
-                    swap_5year = round(float(daily_swap_df.iloc[0]['5Year'][:-1]) / 100, 4)
-
-                    swap_spread_dic = {'60/60': swap_3year,
-                                       '60/84': swap_4year,
-                                       '84/84': swap_4year,
-                                       '84/120': swap_5year,
-                                       '120/120': swap_5year}
-
-                    swap_spread_dic_define = {'60/60': '3 Year',
-                                              '60/84': '4 Year',
-                                              '84/84': '4 Year',
-                                              '84/120': '5 Year',
-                                              '120/120': '5 Year'}
-
-                    down_payment_fee_dict = {'Y': 0.0025, 'N': 0.00, 'NA': 0.00}
-
-                except:
-                    fail_string = 'Failed pulling swap values'
-
-            except:
-                fail_string = "Failed creating Dataframes"
-        except:
-            fail_string = "Failed connecting to worksheets"
-
-        fail_string = 'Success'
-
-    except:
-        fail_string = "Failed Connecting API"
-
-    if fail_string != 'Success':
-        api_failure = 1
-    print('test data pull')
-
-
 def bridge_loan_func():
     global bridge_results
-    prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()
-
 
     bridge_results = {
     'index_rate_used': 'Prime',
     'rate_card_used': 'Pro Forma',
     'final_rate': f"{float(prime_rate.Rate) + float(3.5)}%",
-    'spread_rate': '3.5%',
+    'spread_rate': '3.50%',
     'index_rate': f"{prime_rate.Rate}%",
     'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
     'rate_type': 'Fixed'}
@@ -358,383 +200,258 @@ def bridge_loan_func():
 
 def scooters_func():
     global scooters_results
-    prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()
-
 
     scooters_date = datetime.datetime(2023, 4, 7)
-    today = datetime.datetime.today()
     selected_date = request.form.get('selected_date')
-    if selected_date == "":
+
+    if selected_date == '' or recommit =='N':
         selected_date = datetime.datetime.today()
     else:
         selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
 
+
     if (today - selected_date).days > 120:
+        temp_base_spread = 1.5
         flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
-        temp_base_spread = 1.5 / 100
-        temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
-            "%").astype(float) / 100
-        base_spread = round(temp_base_spread + temp_embedded.iloc[0], 4)
-        final_spread = round(base_spread + float(prime_df.Rate[0].rstrip("%")) / 100, 4)
-
-        loan_buyer_spread = f"{100 * temp_base_spread: .2f}%"
-        loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
-
-        scooters_results = {
-            'index_rate_used': 'Prime',
-            'rate_card_used': 'Scooters Pricing',
-            'final_rate': f"{100 * final_spread: .2f}%",
-            'spread_rate': f"{100 * base_spread: .2f}%",
-            'index_rate': f"{prime_rate.Rate}%",
-            'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
-            'rate_type': 'Fixed',
-            'loan_buyer_spread': loan_buyer_spread,
-            'loan_buyer_fee': loan_buyer_fee
-        }
-        return (scooters_results)
-
-    elif recommit == 'Y' and selected_date < scooters_date:
-            temp_base_spread = 0.75 / 100
-            temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
-                "%").astype(float) / 100
-            # 2/14/2023 Adding Logic Here
-            base_spread = round(temp_base_spread + temp_embedded.iloc[0], 4)
-            final_spread = round(base_spread + float(prime_df.Rate[0].rstrip("%")) / 100, 4)
-
-            loan_buyer_spread =f"{100 * temp_base_spread: .2f}%"
-            loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
-
-            scooters_results = {
-                'index_rate_used': 'Prime',
-                'rate_card_used': 'Scooters Pricing',
-                'final_rate': f"{100 * final_spread: .2f}%",
-                'spread_rate': f"{100 * base_spread: .2f}%",
-                'index_rate': f"{prime_rate.Rate}%",
-                'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
-                'rate_type': userselection_ratetype,
-                'loan_buyer_spread': loan_buyer_spread,
-                'loan_buyer_fee' : loan_buyer_fee
-
-            }
-            return (scooters_results)
+    elif selected_date < scooters_date:
+        temp_base_spread = .75
     else:
-        temp_base_spread = 1.5 / 100
-        temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
-            "%").astype(float) / 100
-        # 2/14/2023 Adding Logic Here
-        base_spread = round(temp_base_spread + temp_embedded.iloc[0], 4)
-        final_spread = round(base_spread + float(prime_df.Rate[0].rstrip("%")) / 100, 4)
+        temp_base_spread = 1.5
 
-        loan_buyer_spread = f"{100 * temp_base_spread: .2f}%"
-        loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
+    # selecting the embedded fee
+    selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()
+    temp_embedded = getattr(selected_fee, userselection_term)
 
-        scooters_results = {
-            'index_rate_used': 'Prime',
-            'rate_card_used': 'Scooters Pricing',
-            'final_rate': f"{100 * final_spread: .2f}%",
-            'spread_rate': f"{100 * base_spread: .2f}%",
-            'index_rate': f"{prime_rate.Rate}%",
-            'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
-            'rate_type': 'Fixed',
-            'loan_buyer_spread': loan_buyer_spread,
-            'loan_buyer_fee': loan_buyer_fee
-        }
-        return (scooters_results)
+    base_spread = round(temp_base_spread + float(temp_embedded), 4)
+
+    final_spread = round(base_spread + float(prime_rate.Rate), 4)
+
+    scooters_results = {
+        'index_rate_used': 'Prime',
+        'rate_card_used': 'Scooters Pricing',
+        'final_rate': f"{final_spread: .2f}%",
+        'spread_rate': f"{base_spread: .2f}%",
+        'index_rate': f"{prime_rate.Rate}%",
+        'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
+        'rate_type': 'Fixed',
+        'loan_buyer_spread': f"{temp_base_spread: .2f}%",
+        'loan_buyer_fee': f"{temp_embedded}%"
+    }
+    return (scooters_results)
 
 def current_credit_policy():
     print('new process')
-    global current_credit_policy_results, rate_card_df, swapbaserate, baserate, swaprate, swapusedlabel, ratecardresults, Swapratedateresults, ratetyperesult, base_field, true_base, dp_field, dp_base, ef_field, ef_base, buyer_header
+    global current_credit_policy_results
 
     current_credit_policy_results = {}
 
-
-    if recommit =="Y":
-        temp_base_spread = spreads_df.loc[
-                               (pd.to_datetime(spreads_df['Start'],
-                                               format="%m/%d/%Y").dt.date <= datetime.datetime.strptime(
-                                   selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date()) &
-                               (pd.to_datetime(spreads_df['End'],
-                                               format="%m/%d/%Y").dt.date >= datetime.datetime.strptime(
-                                   selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date())
-                               &
-                               (spreads_df['APC Grade'] == userselection_grade) &
-                               (spreads_df['PricingBasis'] == userselection_pricing) &
-                               (spreads_df['RateType'] == userselection_ratetype)
-                               ][userselection_term].str.rstrip("%").astype(float) / 100
-        temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
-            "%").astype(float) / 100
-        temp_prime = prime_df['Rate'][0].rstrip("%")
-        base_spread = round(temp_base_spread.iloc[0] + temp_embedded.iloc[0] + down_payment_fee_dict[userselection_dp],
-                            4)
-        final_spread = round(base_spread + (float(temp_prime) / 100), 4)
-        loan_buyer_spread = f"{100 * temp_base_spread.iloc[0]: .2f}%"
-        loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
-        if userselection_dp == 'Y':
-            loan_buyer_dp = '0.25%'
-        else:
-            loan_buyer_dp = '0.00%'
-
-        # creating logic for table
-        temp_table= spreads_df.loc[
-            (pd.to_datetime(spreads_df['Start'],
-                            format="%m/%d/%Y").dt.date <= datetime.datetime.strptime(
-                selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date()) &
-            (pd.to_datetime(spreads_df['End'],
-                            format="%m/%d/%Y").dt.date >= datetime.datetime.strptime(
-                selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date())
-            &
-            (spreads_df['PricingBasis'] == userselection_pricing) &
-            (spreads_df['RateType'] == userselection_ratetype)]
-
-        term_vals = ['60/60', '60/84', '84/84', '84/120', '120/120']
-        transformed_values = list()
-        for row in temp_table[term_vals].values:
-            new_row = list()
-            for i, column in enumerate(row):
-                temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][term_vals[i]].str.rstrip(
-                    "%").astype(float) / 100
-                temp_val = round(float(column.rstrip("%")) / 100 + temp_embedded.iloc[0] + down_payment_fee_dict[
-                    userselection_dp], 4)
-                temp_final = round(100 * (temp_val + (float(temp_prime) / 100)), 2)
-                new_row.append("{:.2f}".format(temp_final) + '%')
-
-            transformed_values.append(new_row)
-
-        month_series = temp_table['Month'].reset_index(drop=True)
-        grade_series = temp_table['APC Grade'].reset_index(drop=True)
-        rate_card_df = pd.concat(
-            [month_series, grade_series, pd.DataFrame(transformed_values, columns=term_vals)],
-            axis=1)
-
-        current_credit_policy_results = {
-            'index_rate_used': 'Prime',
-            'rate_card_used': userselection_pricing,
-            'final_rate': f"{100 * final_spread: .2f}%",
-            'spread_rate': f"{100 * base_spread: .2f}%",
-            'index_rate': prime_df.Rate[0],
-            'index_rate_date': prime_df.Date[0],
-            'rate_type': userselection_ratetype,
-            'loan_buyer_spread': loan_buyer_spread,
-            'loan_buyer_fee': loan_buyer_fee,
-            'loan_buyer_dp': loan_buyer_dp
-
-        }
-        return (current_credit_policy_results, rate_card_df)
-    else:
-        today = datetime.datetime.today().strftime('%m/%d/%Y')
-
-        temp_base_spread = spreads_df.loc[(spreads_df['Start'] <= today) & (spreads_df['End'] >= today) & (
-                spreads_df['APC Grade'] == userselection_grade) & (
-                                                  spreads_df['PricingBasis'] == userselection_pricing) & (
-                                                  spreads_df['RateType'] == userselection_ratetype)][
-                               userselection_term].str.rstrip("%").astype(float) / 100
-        temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip("%").astype(float) / 100
-        temp_prime = prime_df['Rate'][0].rstrip("%")
-        base_spread = round(temp_base_spread.iloc[0] + temp_embedded.iloc[0] + down_payment_fee_dict[userselection_dp], 4)
-        final_spread = round(base_spread + (float(temp_prime) / 100), 4)
-        loan_buyer_spread = f"{100 * temp_base_spread.iloc[0]: .2f}%"
-        loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
-        if userselection_dp == 'Y':
-            loan_buyer_dp = '0.25%'
-        else:
-            loan_buyer_dp = '0.00%'
-
-        # creating logic for table
-        temp_table = spreads_df.loc[(spreads_df['Start'] <= today) & (spreads_df['End'] >= today) & (
-                spreads_df['PricingBasis'] == userselection_pricing) & (
-                                            spreads_df['RateType'] == userselection_ratetype)]
-
-        term_vals = ['60/60', '60/84', '84/84', '84/120', '120/120']
-        transformed_values = list()
-        for row in temp_table[term_vals].values:
-            new_row = list()
-            for i, column in enumerate(row):
-                temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][term_vals[i]].str.rstrip(
-                    "%").astype(float) / 100
-                temp_val = round(float(column.rstrip("%")) / 100 + temp_embedded.iloc[0] + down_payment_fee_dict[
-                    userselection_dp], 4)
-                temp_final = round(100 * (temp_val + (float(temp_prime) / 100)), 2)
-                new_row.append("{:.2f}".format(temp_final) + '%')
-
-            transformed_values.append(new_row)
-
-        month_series = temp_table['Month'].reset_index(drop=True)
-        grade_series = temp_table['APC Grade'].reset_index(drop=True)
-        rate_card_df = pd.concat([month_series, grade_series, pd.DataFrame(transformed_values, columns=term_vals)],
-                            axis=1)
-
-        current_credit_policy_results = {
-            'index_rate_used': 'Prime',
-            'rate_card_used': userselection_pricing,
-            'final_rate': f"{100 * final_spread: .2f}%",
-            'spread_rate': f"{100 * base_spread: .2f}%",
-            'index_rate': prime_df.Rate[0],
-            'index_rate_date': prime_df.Date[0],
-            'rate_type': userselection_ratetype,
-            'loan_buyer_spread': loan_buyer_spread,
-            'loan_buyer_fee': loan_buyer_fee,
-            'loan_buyer_dp': loan_buyer_dp
-
-        }
-        return(current_credit_policy_results, rate_card_df)
-    return
-
-def previous_credit_policy():
-    global previous_credit_policy_results, rate_card_df, swapbaserate, baserate, swaprate, swapusedlabel, ratecardresults, Swapratedateresults, base_field, true_base, dp_field, dp_base, ef_field, ef_base, buyer_header
-    print('old process')
-
-
-    if userselection_pricing== 'Pro Forma':
-        temp_base_spread = spreads_df.loc[
-            (pd.to_datetime(spreads_df['Start'], format="%m/%d/%Y").dt.date <= datetime.datetime.strptime(
-                selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date()) &
-            (pd.to_datetime(spreads_df['End'], format="%m/%d/%Y").dt.date >= datetime.datetime.strptime(
-                selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date())
-            &
-                               (spreads_df['APC Grade'] == userselection_grade) &
-                               (spreads_df['PricingBasis'] == userselection_pricing) &
-                               (spreads_df['RateType'] == userselection_ratetype)
-                               ][userselection_term].str.rstrip("%").astype(float) / 100
-
-        temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
-            "%").astype(
-            float) / 100
-
-        temp_prime = prime_df['Rate'][0].rstrip("%")
-
-        base_spread = round(
-            temp_base_spread.iloc[0] + temp_embedded.iloc[0] + down_payment_fee_dict[userselection_dp], 4)
-
-        final_spread = round(base_spread + (float(temp_prime) / 100), 4)
-        loan_buyer_spread = f"{100 * temp_base_spread.iloc[0]: .2f}%"
-        loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
-        if userselection_dp == 'Y':
-            loan_buyer_dp = '0.25%'
-        else:
-            loan_buyer_dp = '0.00%'
-
-        # creating logic for table
-        temp_table= spreads_df.loc[
-            (pd.to_datetime(spreads_df['Start'],
-                            format="%m/%d/%Y").dt.date <= datetime.datetime.strptime(
-                selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date()) &
-            (pd.to_datetime(spreads_df['End'],
-                            format="%m/%d/%Y").dt.date >= datetime.datetime.strptime(
-                selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date())
-            &
-            (spreads_df['PricingBasis'] == userselection_pricing) &
-            (spreads_df['RateType'] == userselection_ratetype)]
-
-        term_vals = ['60/60', '60/84', '84/84', '84/120', '120/120']
-        transformed_values = list()
-        for row in temp_table[term_vals].values:
-            new_row = list()
-            for i, column in enumerate(row):
-                temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][term_vals[i]].str.rstrip(
-                    "%").astype(float) / 100
-                temp_val = round(float(column.rstrip("%")) / 100 + temp_embedded.iloc[0] + down_payment_fee_dict[
-                    userselection_dp], 4)
-                temp_final = round(100 * (temp_val + (float(temp_prime) / 100)), 2)
-                new_row.append("{:.2f}".format(temp_final) + '%')
-
-            transformed_values.append(new_row)
-
-        month_series = temp_table['Month'].reset_index(drop=True)
-        grade_series = temp_table['APC Grade'].reset_index(drop=True)
-        rate_card_df = pd.concat(
-            [month_series, grade_series, pd.DataFrame(transformed_values, columns=term_vals)],
-            axis=1)
-
-        previous_credit_policy_results = {
-            'index_rate_used': 'Prime',
-            'rate_card_used': userselection_pricing,
-            'final_rate': f"{100 * final_spread: .2f}%",
-            'spread_rate': f"{100 * base_spread: .2f}%",
-            'index_rate': prime_df.Rate[0],
-            'index_rate_date': prime_df.Date[0],
-            'rate_type': userselection_ratetype,
-            'loan_buyer_spread': loan_buyer_spread,
-            'loan_buyer_fee': loan_buyer_fee,
-            'loan_buyer_dp': loan_buyer_dp
-
-        }
-        return(previous_credit_policy_results, rate_card_df)
-
+    if recommit =="Y" and (today - selected_date).days < 120:
+        # Selecting rate card
+        selected_spread = Spreads.query.filter(
+            and_(
+                Spreads.Start <= selected_date,
+                Spreads.End >= selected_date,
+                Spreads.APCGrade == userselection_grade,
+                Spreads.PricingBasis == userselection_pricing,
+                Spreads.RateType == userselection_ratetype
+            )
+        ).first()
+        temp_base_spread = getattr(selected_spread, userselection_term)
 
     else:
-        previous_credit_policy_results = {}
 
-        temp_base_spread = spreads_df.loc[
-                               (pd.to_datetime(spreads_df['Start'],
-                                               format="%m/%d/%Y").dt.date <= datetime.datetime.strptime(
-                                   selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date()) &
-                               (pd.to_datetime(spreads_df['End'],
-                                               format="%m/%d/%Y").dt.date >= datetime.datetime.strptime(
-                                   selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date())
-                               &
-                               (spreads_df['APC Grade'] == userselection_grade) &
-                               (spreads_df['PricingBasis'] == userselection_pricing) &
-                               (spreads_df['RateType'] == userselection_ratetype)
-                               ][userselection_term].str.rstrip("%").astype(float) / 100
+        # Selecting rate card
+        selected_spread = Spreads.query.filter(
+            and_(Spreads.Start <= today,Spreads.End >= today,
+                Spreads.APCGrade == userselection_grade,
+                Spreads.PricingBasis == userselection_pricing,
+                Spreads.RateType == userselection_ratetype
+            )
+        ).first()
+        temp_base_spread = getattr(selected_spread, userselection_term)
 
-    temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].str.rstrip(
-        "%").astype(
-        float) / 100
+    # selecting the embedded fee
+    selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()
+    temp_embedded = getattr(selected_fee, userselection_term)
 
+    # base spread
     base_spread = round(
-        temp_base_spread.iloc[0] + temp_embedded.iloc[0] + down_payment_fee_dict[userselection_dp], 4)
-    final_spread = round(base_spread + swap_spread_dic[userselection_term], 4)
-    loan_buyer_spread = f"{100 * temp_base_spread.iloc[0]: .2f}%"
-    loan_buyer_fee = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][userselection_term].iloc[0]
-    if userselection_dp == 'Y':
-        loan_buyer_dp = '0.25%'
-    else:
-        loan_buyer_dp = '0.00%'
+        float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp]), 4)
 
-    # Creating Logic so that table that is displayed has the final rate for each cell in matrix
-    temp_table = spreads_df.loc[
-                           (pd.to_datetime(spreads_df['Start'],
-                                           format="%m/%d/%Y").dt.date <= datetime.datetime.strptime(
-                               selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date()) &
-                           (pd.to_datetime(spreads_df['End'],
-                                           format="%m/%d/%Y").dt.date >= datetime.datetime.strptime(
-                               selected_date.strftime("%m/%d/%Y"), "%m/%d/%Y").date())
-                           &
-                           (spreads_df['PricingBasis'] == userselection_pricing) &
-                           (spreads_df['RateType'] == userselection_ratetype)
-                           ]
-    term_vals = ['60/60', '60/84', '84/84', '84/120', '120/120']
+    # final interest rate
+    final_spread = round(base_spread + float(prime_rate.Rate), 4)
+
+    #return results
+    current_credit_policy_results = {
+        'index_rate_used': 'Prime',
+        'rate_card_used': userselection_pricing,
+        'final_rate': f"{final_spread: .2f}%",
+        'spread_rate': f"{base_spread: .2f}%",
+        'index_rate': f"{prime_rate.Rate}%",
+        'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
+        'rate_type': 'Fixed',
+        'loan_buyer_spread': f"{temp_base_spread: .2f}%",
+        'loan_buyer_fee': f"{temp_embedded}%",
+        'loan_buyer_dp': f"{down_payment_fee_dict[userselection_dp]: .2f}%"
+    }
+    return (current_credit_policy_results)
+
+def rate_card():
+    global rate_card_df
+
+    if recommit =="Y" and (today - selected_date).days < 120:
+        # selecting rate card for the table
+        temp_table = db.session.query(Spreads).filter(
+            and_(
+                Spreads.Start <= selected_date,
+                Spreads.End >= selected_date,
+                Spreads.PricingBasis == userselection_pricing,
+                Spreads.RateType == userselection_ratetype
+            )
+        ).all()
+
+    else:
+        # selecting rate card for the table
+        temp_table = db.session.query(Spreads).filter(
+            and_(
+                Spreads.Start <= today,
+                Spreads.End >= today,
+                Spreads.PricingBasis == userselection_pricing,
+                Spreads.RateType == userselection_ratetype
+            )
+        ).all()
+
+    # table creation
+    nice_term_vals = ['60/60', '60/84', '84/84', '84/120', '120/120']
+    # Mapping between attribute names and nice terms
+    term_map = {'term_60_60': '60/60', 'term_60_84': '60/84', 'term_84_84': '84/84', 'term_84_120': '84/120',
+                'term_120_120': '120/120'}
     transformed_values = list()
-    for row in temp_table[term_vals].values:
+    for spread_object in temp_table:
         new_row = list()
-        for i, column in enumerate(row):
-            temp_embedded = ef_df.loc[ef_df['Fee Buy-Down'] == userselection_fee][term_vals[i]].str.rstrip(
-                "%").astype(float) / 100
-            temp_val = round(float(column.rstrip("%")) / 100 + temp_embedded.iloc[0] + down_payment_fee_dict[
-                userselection_dp], 4)
-            temp_final = round(100 * (temp_val + swap_spread_dic[term_vals[i]]), 2)
+        for attr, term_val in term_map.items():
+            column = getattr(spread_object, attr)
+            selected_fee_table = EmbeddedFee.query.filter_by(Fee_Buy_Down=userselection_fee).first()
+            temp_embedded_table = getattr(selected_fee_table, attr)
+
+            temp_val = round(
+                float(column) + float(temp_embedded_table) + float(down_payment_fee_dict[userselection_dp]), 4)
+
+            temp_final = round((temp_val + (float(prime_rate.Rate))), 2)
+
             new_row.append("{:.2f}".format(temp_final) + '%')
 
         transformed_values.append(new_row)
 
-    month_series = temp_table['Month'].reset_index(drop=True)
-    grade_series = temp_table['APC Grade'].reset_index(drop=True)
-    rate_card_df = pd.concat([month_series, grade_series, pd.DataFrame(transformed_values, columns=term_vals)],
-                        axis=1)
+    month_list = [spread_object.Month for spread_object in temp_table]
+    grade_list = [spread_object.APCGrade for spread_object in temp_table]
+    rate_card_df = pd.DataFrame(transformed_values, columns=nice_term_vals)
+    rate_card_df.insert(0, 'Month', month_list)
+    rate_card_df.insert(1, 'APC Grade', grade_list)
+
+    return rate_card_df
+
+def previous_credit_policy():
+    global previous_credit_policy_results, rate_card_df
+    print('old process')
+
+    previous_credit_policy_results = {}
+
+    #dict to convert user term selection to DB model
+    swap_spread_dic = {'60/60': 'three_Year',
+                       '60/84': 'four_Year',
+                       '84/84': 'four_Year',
+                       '84/120': 'five_Year',
+                       '120/120': 'five_Year'}
+    selected_swap = swap_spread_dic.get(request.form.get('term'))
+
+
+    # Selecting rate card
+    selected_spread = Spreads.query.filter(
+        and_(
+            Spreads.Start <= selected_date,
+            Spreads.End >= selected_date,
+            Spreads.APCGrade == userselection_grade,
+            Spreads.PricingBasis == userselection_pricing,
+            Spreads.RateType == userselection_ratetype
+        )
+    ).first()
+    temp_base_spread = getattr(selected_spread, userselection_term)
+
+    # selecting the embedded fee
+    selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()
+    temp_embedded = getattr(selected_fee, userselection_term)
+
+    # swap rate
+    swap_rate = SwapRate.query.order_by(desc(SwapRate.Date)).first()
+    temp_swap = getattr(swap_rate, selected_swap)
+
+    # base spread
+    base_spread = round(
+        float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp]), 4)
+
+    #final interest rate
+    final_spread = round(float(base_spread) + float(temp_swap), 4)
+
+    # selecting rate card for the table
+    temp_table = db.session.query(Spreads).filter(
+        and_(
+            Spreads.Start <= selected_date,
+            Spreads.End >= selected_date,
+            Spreads.PricingBasis == userselection_pricing,
+            Spreads.RateType == userselection_ratetype
+        )
+    ).all()
+
+
+    # table creation
+    nice_term_vals = ['60/60', '60/84', '84/84', '84/120', '120/120']
+    # Mapping between attribute names and nice terms
+    term_map = {'term_60_60': '60/60', 'term_60_84': '60/84', 'term_84_84': '84/84', 'term_84_120': '84/120',
+                'term_120_120': '120/120'}
+    transformed_values = list()
+    for spread_object in temp_table:
+        new_row = list()
+        for attr, term_val in term_map.items():
+            # Access the term value using the getattr function since the column names are dynamic
+            column = getattr(spread_object, attr)
+            selected_fee_table = EmbeddedFee.query.filter_by(Fee_Buy_Down=userselection_fee).first()
+            temp_embedded_table = getattr(selected_fee_table, attr)
+
+            temp_val = round(
+                float(column) + float(temp_embedded_table) + float(down_payment_fee_dict[userselection_dp]), 4)
+
+            temp_final = round((temp_val + (float(temp_swap))), 2)
+
+            new_row.append("{:.2f}".format(temp_final) + '%')
+
+        transformed_values.append(new_row)
+
+    month_list = [spread_object.Month for spread_object in temp_table]
+    grade_list = [spread_object.APCGrade for spread_object in temp_table]
+    rate_card_df = pd.DataFrame(transformed_values, columns=nice_term_vals)
+    rate_card_df.insert(0, 'Month', month_list)
+    rate_card_df.insert(1, 'APC Grade', grade_list)
+
+    swap_spread_dic_results = {'60/60': '3 Year',
+                       '60/84': '4 Year',
+                       '84/84': '4 Year',
+                       '84/120': '5 Year',
+                       '120/120': '5 Year'}
+    selected_swap_results = swap_spread_dic_results.get(request.form.get('term'))
 
     previous_credit_policy_results = {
-        'index_rate_used': 'Swap - ' + swap_spread_dic_define[userselection_term],
+        'index_rate_used': f"Swap - {selected_swap_results}",
         'rate_card_used': userselection_pricing,
-        'final_rate': f"{100 * final_spread: .2f}%",
-        'spread_rate': f"{100 * base_spread: .2f}%",
-        'index_rate': f"{100 * swap_spread_dic[userselection_term]: .2f}%",
-        'index_rate_date': daily_swap_df['Date'][0],
-        'rate_type': userselection_ratetype,
-        'loan_buyer_spread': loan_buyer_spread,
-        'loan_buyer_fee': loan_buyer_fee,
-        'loan_buyer_dp': loan_buyer_dp
-
+        'final_rate': f"{final_spread: .2f}%",
+        'spread_rate': f"{base_spread: .2f}%",
+        'index_rate': f"{temp_swap}%",
+        'index_rate_date': swap_rate.Date.strftime('%m/%d/%Y'),
+        'rate_type': 'Fixed',
+        'loan_buyer_spread': f"{temp_base_spread: .2f}%",
+        'loan_buyer_fee': f"{temp_embedded}%",
+        'loan_buyer_dp': f"{down_payment_fee_dict[userselection_dp]: .2f}%"
     }
     return (previous_credit_policy_results, rate_card_df)
-    return
+
 

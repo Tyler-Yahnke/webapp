@@ -94,7 +94,7 @@
                 <input type="date" name="selected_date" id="selectedDate" {% if previous_data.selected_date %}value="{{ previous_data.selected_date }}" {% endif %}>
             </div>
 
-            <label>Is this for Scooter's Coffee?</label>
+            <label>Scooter's Coffee</label>
                 <select name="scooters_coffee" onchange="toggleDropdown(this.value, 'bridge_loan')">
 
                     <option value="N" {% if previous_data.userselection_scooters == 'N' %}selected{% endif %}>N</option>
@@ -113,7 +113,7 @@
                     <option value="Fixed" {% if previous_data.userselection_ratetype == 'Fixed' %}selected{% endif %}>Fixed</option>
                 </select>
 <br>
-                <label>Select Term</label>
+                <label>Term</label>
                 <select name="term">
                     <option value="Make Selection" {% if previous_data.userselection_term == 'Make Selection' %}selected{% endif %}>Make Selection</option>
                     <option value="60/60" {% if previous_data.userselection_term == '60/60' %}selected{% endif %}>60/60</option>
@@ -123,7 +123,7 @@
                     <option value="120/120" {% if previous_data.userselection_term == '120/120' %}selected{% endif %}>120/120</option>
                 </select>
 <br>
-                <label>Select Embedded Fee</label>
+                <label>Embedded Fee</label>
                 <select name="embedded_fee">
                     <option value="Make Selection" {% if previous_data.userselection_fee == 'Make Selection' %}selected{% endif %}>Make Selection</option>
                     <option value="0.00%" {% if previous_data.userselection_fee == '0.00%' %}selected{% endif %}>0.00%</option>
@@ -140,7 +140,7 @@
                 </select>
 <br>
 
-                <label>Select Investment Grade</label>
+                <label>Investment Grade</label>
                 <select name="investment_grade">
                     <option value="Make Selection" {% if previous_data.userselection_grade == 'Make Selection' %}selected{% endif %}>Make Selection</option>
                     <option value="AA" {% if previous_data.userselection_grade == 'AA' %}selected{% endif %}>AA</option>
@@ -151,7 +151,7 @@
                     <option value="E" {% if previous_data.userselection_grade == 'E' %}selected{% endif %}>E</option>
                 </select>
 <br>
-                <label>Select Pricing Basis</label>
+                <label>Pricing Basis</label>
                 <select name="pricing_basis">
                     <option value="Make Selection" {% if previous_data.userselection_pricing == 'Make Selection' %}selected{% endif %}>Make Selection</option>
                     <option value="Cash Flow" {% if previous_data.userselection_pricing == 'Cash Flow' %}selected{% endif %}>Cash Flow</option>
