@@ -4,7 +4,6 @@ from flask_login import LoginManager, current_user
 from flask_mail import Mail
 from flask_apscheduler import APScheduler
 from pytz import timezone
-from .index_pull import index_rate_updates
 from datetime import timedelta, datetime
 
 db = SQLAlchemy()
@@ -54,6 +53,7 @@ def create_app():
     application.register_blueprint(views, url_prefix='/')
 
     from .models import User
+    from .index_pull import index_rate_updates, index_rate_verification
 
 
     login_manager = LoginManager()
@@ -68,6 +68,14 @@ def create_app():
     @scheduler.task('cron', id='index_update', day_of_week='*', hour=23, minute=58, timezone=timezone('US/Pacific'))
     def index_update():
         index_rate_updates()
+
+    #making sure index was updated in DB
+    @scheduler.task('cron',id='index_verification', day_of_week='*', hour=1, minute=30,timezone=timezone('US/Pacific'))
+    def index_verification():
+        with application.app_context():
+            index_rate_verification()
+
+
 
     #Checking to see when last activity was and updating user logged in
     @scheduler.task('interval', id='cleanup_logged_in', minutes=60)

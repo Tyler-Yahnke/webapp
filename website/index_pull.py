@@ -3,6 +3,9 @@ from datetime import date
 from datetime import datetime
 from pandas.tseries.offsets import BDay
 import requests
+from flask_mail import Message
+from flask import current_app
+from . import mail
 
 def index_rate_updates():
     # Connect to the database
@@ -116,3 +119,49 @@ def index_rate_updates():
     connection.close()
 
 
+def index_rate_verification():
+
+    # Connect to the database
+    connection = pymysql.connect(
+        host='awseb-e-rvvktpucyf-stack-awsebrdsdatabase-ijbluxt9ye2s.cavhriuewzv4.us-east-1.rds.amazonaws.com',
+        user='ebroot',
+        password='Yamaha189!',
+        database='ebdb',
+        cursorclass=pymysql.cursors.DictCursor  # Optional: Return results as dictionaries
+    )
+
+    # Create a cursor
+    cursor = connection.cursor()
+
+    # Execute SQL queries
+    sql = "SELECT * FROM ebdb.swap_rate order by Date desc"
+    cursor.execute(sql)
+
+    # Grabbing First Row
+    swap_row = cursor.fetchone()
+
+    sql = "SELECT * FROM ebdb.prime_rate order by Date desc"
+    cursor.execute(sql)
+
+    # Grabbing First Row
+    prime_row = cursor.fetchone()
+
+    # Setting Previous Business Day
+    prev_Biz_Day = date.today() - BDay(1)
+    formatted_dt = prev_Biz_Day.strftime('%Y-%m-%d')
+
+
+    if swap_row and str(swap_row['Date']) != formatted_dt or prime_row and str(prime_row['Date']) != formatted_dt:
+        msg = Message('Index Rate not Updated', sender='passwordreset@apcratecard.com',
+                      recipients=['tyler.yahnke@applepiecapital.com'])
+        msg.body = 'Index Rate is not up to date. Verify if Index Rate is inaccurate in the database.'
+
+
+        mail.send(msg)
+
+    else:
+        pass
+
+    # Close the cursor and connection
+    cursor.close()
+    connection.close()
