@@ -386,6 +386,18 @@ def previous_credit_policy():
     swap_rate = SwapRate.query.order_by(desc(SwapRate.Date)).first()
     temp_swap = getattr(swap_rate, selected_swap)
 
+
+    swap_3year = float(getattr(swap_rate, 'three_Year'))
+    swap_4year = float(getattr(swap_rate, 'four_Year'))
+    swap_5year = float(getattr(swap_rate, 'five_Year'))
+
+    swap_spread_dic = {'60/60': swap_3year,
+                       '60/84': swap_4year,
+                       '84/84': swap_4year,
+                       '84/120': swap_5year,
+                       '120/120': swap_5year}
+
+
     # base spread
     base_spread = round(
         float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp]), 4)
@@ -402,6 +414,7 @@ def previous_credit_policy():
             Spreads.RateType == userselection_ratetype
         )
     ).all()
+
 
 
     # table creation
@@ -421,7 +434,7 @@ def previous_credit_policy():
             temp_val = round(
                 float(column) + float(temp_embedded_table) + float(down_payment_fee_dict[userselection_dp]), 4)
 
-            temp_final = round((temp_val + (float(temp_swap))), 2)
+            temp_final = round((temp_val + swap_spread_dic[term_val]), 2)
 
             new_row.append("{:.2f}".format(temp_final) + '%')
 
