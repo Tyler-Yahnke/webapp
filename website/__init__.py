@@ -30,13 +30,13 @@ def create_app():
     mail.init_app(application)
     db.init_app(application)
 
-    '''
+
     #Checking to see if user session has expire and routing to login page
     @application.before_request
     def check_user_session():
-        if 'logged_in' not in session and request.endpoint != 'auth.login':
+        if 'logged_in' not in session and request.endpoint != 'auth.login' and request.endpoint != 'auth.password_reset':
             return redirect(url_for('auth.login'))
-    '''
+
 
     #Updating last activity for each user each time the server is called
     @application.before_request
