@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Document Generator{% endblock %}
+
+{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document Generator</title>
+    <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+    <style>
+        .modern-heading {
+            text-align: center;
+            font-family: 'Raleway', sans-serif;
+            font-size: 48px;
+            color: #7dbb5a;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #7dbb5a;
+            padding-bottom: 10px;
+            margin-bottom: 5px;
+        }
+
+        .form-container{
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            background-color: rgba(200, 200, 200, 0.8);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+
+        .form-container-buttons {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 10px;
+        background-color: rgba(200, 200, 200, 0.8);
+        border-radius: 10px;
+        padding: 10px;
+        }
+
+        .footer {
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+        }
+               .container-margin-bottom {
+            margin-bottom: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="modern-heading">Document Generator</h1>
+
+    <div class="form-container">
+            <h3>Instructions</h3>
+            <label>- Step 1: Input the data you want input onto each letter into the spreadsheet. For example: Name, DOB, Address</label>
+            <label>- Make the first column a unique identifier for each letter. The document will be saved using this identifier</label>
+            <label>- Step 2: Open the letter you want to input the data into</label>
+            <label>- Step 3: Insert the column name from the Excel spreadsheet into the location you want it to show surronded by {}.</label>
+            <label>- For example: Hello my name is {Name}. I live on {Address}. Note: These are case sensitive so they must match exactly how they show in the spreadsheet</label>
+            <label>- Step 4: Save the Excel doc(.xlsx) and Word doc(.docx) to your computer</label>
+            <label>- Step 5: Click the Upload Excel doc button below and select the Excel doc from your computer</label>
+            <label>- Step 6: Click the Upload Word doc button below and select the Word doc from your computer</label>
+            <label>- Step 7: Click the Generator Docs Button. The documents will be saved to your desktop</label>
+    </div>
+
+    <div class="form-container">
+        <form method="POST" enctype="multipart/form-data">
+            <label>Select Excel Document:</label>
+            <input type="file" name="excel-file" accept=".xlsx">
+            <br>
+            <label>Select Word Document:</label>
+            <input type="file" name="word-file" accept=".docx">
+            <br>
+            <input type="submit" name='generate_docs' class="btn btn-primary" value="Generate Docs">
+        </form>
+    </div>
+
+
+    <div class="container-margin-bottom"></div>
+    <div class="footer">
+        Created and Managed by Tyler Yahnke and Joel Fuentes
+        <br>
+        Version 3.0
+    </div>
+
+
+</body>
+</html>
+{% endblock %}
