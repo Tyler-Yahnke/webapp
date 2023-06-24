@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, jsonify, send_file
+from flask import Blueprint, render_template, request, flash
 from flask_login import login_required, current_user
 from . import db
 from docx import Document
