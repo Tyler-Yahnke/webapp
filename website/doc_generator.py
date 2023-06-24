@@ -24,7 +24,8 @@ def doc_generation():
             if excel_file and word_file:
                 # Save the uploaded files temporarily
                 excel_path = os.path.join(tempfile.gettempdir(), 'uploaded_excel.xlsx')
-                word_path = os.path.join(tempfile.gettempdir(), 'uploaded_word.docx')
+                word_filename = word_file.filename  # Get the original filename of the uploaded Word document
+                word_path = os.path.join(tempfile.gettempdir(), word_filename)
                 excel_file.save(excel_path)
                 word_file.save(word_path)
 
@@ -82,7 +83,7 @@ def doc_generation():
                 zip_buffer.seek(0)
 
                 # Send the zip file as a download response
-                return send_file(zip_buffer, as_attachment=True, download_name='generated_documents.zip')
+                return send_file(zip_buffer, as_attachment=True, download_name='Tylers_Generated_Documents.zip')
 
             else:
                 # Send a flash message indicating missing documents
