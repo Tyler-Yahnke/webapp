@@ -83,6 +83,7 @@ def doc_generation():
 
                 # Send the zip file as a download response
                 return send_file(zip_buffer, as_attachment=True, download_name='generated_documents.zip')
+                return render_template("doc_generator.html", user=current_user)
 
             else:
                 # Send a flash message indicating missing documents
