@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash
+from flask import Blueprint, render_template, request, flash, send_file,make_response
 from flask_login import login_required, current_user
 from . import db
 from docx import Document
@@ -55,8 +55,8 @@ def doc_generation():
                     # Save the populated Word document for each row and Word document
                     name = row[0]  # Assuming the first column contains a unique identifier
                     output_dir = os.path.expanduser("~/Desktop")  # Get the user's desktop directory
-                    output_path = os.path.join(output_dir,
-                                               f'{name}_{os.path.basename(word_path)}.docx')  # Specify the output file path
+                    output_filename = f'{name}_{os.path.basename(word_path)}'
+                    output_path = os.path.join(output_dir,output_filename)  # Specify the output file path
                     doc.save(output_path)
 
                 # Close the Excel spreadsheet
@@ -69,8 +69,19 @@ def doc_generation():
                 # Send a flash message indicating success
                 flash('Documents generated successfully', category='success')
 
-                # Return the rendered template
-                return render_template("doc_generator.html", user=current_user)
+                # Send the file as a download response
+                download_response = send_file(output_path, as_attachment=True)
+
+                # Render the template
+                template_response = render_template("doc_generator.html", user=current_user)
+
+                # Create a response that combines both download and template responses
+                response = make_response(download_response, template_response)
+
+                # Return the combined response
+                return response
+
+
             else:
                 # Send a flash message indicating success
                 flash('Missing Document', category='error')
