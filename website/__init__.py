@@ -17,6 +17,8 @@ def create_app():
     application.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://ebroot:Yamaha189!@awseb-e-rvvktpucyf-stack-awsebrdsdatabase-ijbluxt9ye2s.cavhriuewzv4.us-east-1.rds.amazonaws.com:3306/ebdb'
     application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     application.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=90)  # Set session to 1.5 hour
+    application.config['UPLOAD_FOLDER']= '/Users/tyleryahnke/PycharmProjects/webapp/Test'
+
 
     #creating mail server
     application.config['MAIL_SERVER'] = 'email-smtp.us-east-1.amazonaws.com'
@@ -49,10 +51,12 @@ def create_app():
     from .views import views
     from .auth import auth
     from .fees import fees
+    from .doc_generator import doc_generator
 
     application.register_blueprint(auth, url_prefix='/')
     application.register_blueprint(fees, url_prefix='/')
     application.register_blueprint(views, url_prefix='/')
+    application.register_blueprint(doc_generator, url_prefix='/DocGenerator')
 
     from .models import User
     from .index_pull import index_rate_updates, index_rate_verification
