@@ -6,11 +6,9 @@ from .models import Discounts
 
 fees = Blueprint('fees', __name__)
 
-@fees.route('/fees', methods=['GET', 'POST'])
+@fees.route('/', methods=['GET', 'POST'])
 @login_required
 def fees_func():
-
-
 
     if request.method == 'GET':
         discounts = Discounts.query.all()
