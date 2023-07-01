@@ -411,11 +411,38 @@ def missing():
         gdscr = request.form.get('newgdscr')
         operatorExperience = request.form.get('newoperatorExperience')
 
-        if terms == 'Make Selection' or amortTerms == 'Make Selection' or borrowerExperience == 'Make Selection' or brandCategory=='Make Selection':
-            flash('Missing Input: Make Selection', category='error')
+        if terms == 'Make Selection':
+            flash("Missing Input: Term", category='error')
             return 'Missing'
-        elif loanAmount=='' or fico=='' or pcr=='' or gracePeriod=='' or downPaymentPercent =='' or gdscr=='' or operatorExperience=='':
-            flash('Missing Input: Input is Blank', category='error')
+        elif amortTerms == 'Make Selection':
+            flash("Missing Input: Amortization", category='error')
+            return 'Missing'
+        elif borrowerExperience == 'Make Selection':
+            flash('Missing Input: Borrower Experience', category='error')
+            return 'Missing'
+        elif brandCategory == 'Make Selection':
+            flash("Missing Input: Brand Category", category='error')
+            return 'Missing'
+        elif loanAmount == '':
+            flash('Missing Input: Loan Amount', category='error')
+            return 'Missing'
+        elif fico == '':
+            flash('Missing Input: FICO', category='error')
+            return 'Missing'
+        elif pcr == '':
+            flash('Missing Input: PCR', category='error')
+            return 'Missing'
+        elif gracePeriod == '':
+            flash('Missing Input: Grace Period', category='error')
+            return 'Missing'
+        elif downPaymentPercent == '':
+            flash('Missing Input: Down Payment Percentage', category='error')
+            return 'Missing'
+        elif gdscr == '':
+            flash('Missing Input: GDSCR', category='error')
+            return 'Missing'
+        elif operatorExperience == '':
+            flash('Missing Input: Operator Experience', category='error')
             return 'Missing'
 
 
@@ -433,11 +460,41 @@ def missing():
         fccrBasis = request.form.get('recapfccrBasis')
         intelliscore = request.form.get('recapintelliscore')
 
-        if terms == 'Make Selection' or amortTerms == 'Make Selection' or brandCategory== 'Make Selection' or useOfFunds=='Make Selection' or franchisorExperience=='Make Selection' or fccrBasis=='Make Selection' or intelliscore=='Make Selection':
-            flash('Missing Input: Make Selection', category='error')
+        if terms == 'Make Selection':
+            flash('Missing Input: Term', category='error')
             return 'Missing'
-        elif loanAmount=='' or fico=='' or pcr=='' or monthsSinceBreakeven=='' or fccr=='':
-            flash('Missing Input: Input is Blank', category='error')
+        elif amortTerms == 'Make Selection':
+            flash('Missing Input: Amortization', category='error')
+            return 'Missing'
+        elif brandCategory == 'Make Selection':
+            flash('Missing Input: Brand Category', category='error')
+            return 'Missing'
+        elif useOfFunds == 'Make Selection':
+            flash('Missing Input: Use Of Funds', category='error')
+            return 'Missing'
+        elif franchisorExperience == 'Make Selection':
+            flash('Missing Input: Franchisor Experience', category='error')
+            return 'Missing'
+        elif fccrBasis == 'Make Selection':
+            flash('Missing Input: FCCR Basis', category='error')
+            return 'Missing'
+        elif intelliscore == 'Make Selection':
+            flash('Missing Input: Intelliscore', category='error')
+            return 'Missing'
+        elif loanAmount == '':
+            flash('Missing Input: Loan Amount', category='error')
+            return 'Missing'
+        elif fico == '':
+            flash('Missing Input: FICO', category='error')
+            return 'Missing'
+        elif pcr == '':
+            flash('Missing Input: PCR', category='error')
+            return 'Missing'
+        elif monthsSinceBreakeven == '':
+            flash('Missing Input: Month Since Breakeven', category='error')
+            return 'Missing'
+        elif fccr == '':
+            flash('Missing Input: FCCR', category='error')
             return 'Missing'
 
 
@@ -455,11 +512,44 @@ def missing():
         fccr = request.form.get('purchasefccr')
         fccrBasis = request.form.get('purchasefccrBasis')
         intelliscore = request.form.get('purchaseintelliscore')
-        if terms == 'Make Selection' or amortTerms == 'Make Selection' or borrowerExperience == 'Make Selection' or brandCategory=='Make Selection' or fccrBasis=='Make Selection' or intelliscore=='Make Selection':
-            flash('Missing Input: Make Selection', category='error')
+        if terms == 'Make Selection':
+            flash('Missing Input: Term', category='error')
             return 'Missing'
-        elif loanAmount=='' or fico=='' or pcr=='' or downPaymentPercent =='' or operatorExperience=='' or monthsSinceBreakeven=='' or fccr=='':
-            flash('Missing Input: Input is Blank', category='error')
+        elif amortTerms == 'Make Selection':
+            flash('Missing Input: Amortization', category='error')
+            return 'Missing'
+        elif borrowerExperience == 'Make Selection':
+            flash('Missing Input: Borrower Experience', category='error')
+            return 'Missing'
+        elif brandCategory == 'Make Selection':
+            flash('Missing Input: Brand Category', category='error')
+            return 'Missing'
+        elif fccrBasis == 'Make Selection':
+            flash('Missing Input: FCCR Basis', category='error')
+            return 'Missing'
+        elif intelliscore == 'Make Selection':
+            flash('Missing Input: Intelliscore', category='error')
+            return 'Missing'
+        elif loanAmount == '':
+            flash('Missing Input: Loan Amount', category='error')
+            return 'Missing'
+        elif fico == '':
+            flash('Missing Input: FICO', category='error')
+            return 'Missing'
+        elif pcr == '':
+            flash('Missing Input: PCR', category='error')
+            return 'Missing'
+        elif downPaymentPercent == '':
+            flash('Missing Input: Down Payment Percent', category='error')
+            return 'Missing'
+        elif operatorExperience == '':
+            flash('Missing Input: Operator Experience', category='error')
+            return 'Missing'
+        elif monthsSinceBreakeven == '':
+            flash('Missing Input: Months since Breakeven', category='error')
+            return 'Missing'
+        elif fccr == '':
+            flash('Missing Input: FCCR', category='error')
             return 'Missing'
 
     else:
@@ -490,7 +580,6 @@ def validations():
             return 'Fail'
 
     elif userselection_product == 'New Unit':
-        print('here')
         if int(gdscr) < 0 or int(gdscr) >999:
             flash('Invalid GDSCR', category='error')
             return 'Fail'
@@ -531,7 +620,6 @@ def get_interest_rate():
     interestRate = float(prime_rate.Rate) + float(spread_rate)
 
     return interestRate
-
 
 
 # ## Start: Function creation for Pricing Model
