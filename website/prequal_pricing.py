@@ -423,6 +423,9 @@ def missing():
         elif brandCategory == 'Make Selection':
             flash("Missing Input: Brand Category", category='error')
             return 'Missing'
+        elif operatorExperience == 'Make Selection':
+            flash("Missing Input: Operator Experience", category='error')
+            return 'Missing'
         elif loanAmount == '':
             flash('Missing Input: Loan Amount', category='error')
             return 'Missing'
@@ -520,6 +523,9 @@ def missing():
             return 'Missing'
         elif borrowerExperience == 'Make Selection':
             flash('Missing Input: Borrower Experience', category='error')
+            return 'Missing'
+        elif operatorExperience == 'Make Selection':
+            flash("Missing Input: Operator Experience", category='error')
             return 'Missing'
         elif brandCategory == 'Make Selection':
             flash('Missing Input: Brand Category', category='error')
