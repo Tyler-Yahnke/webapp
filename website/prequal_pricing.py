@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, flash, jsonify
 from flask_login import login_required, current_user
 from . import db
-from .models import Spreads, PrimeRate
+from .models import Spreads, PrimeRate, PrequalPricing
 import datetime
 from sqlalchemy import desc, and_
+import numpy as np
 
 prequal_pricing = Blueprint('prequal_pricing', __name__)
 
@@ -11,7 +12,7 @@ prequal_pricing = Blueprint('prequal_pricing', __name__)
 @prequal_pricing.route('/', methods=['GET', 'POST'])
 @login_required
 def pricing_model_func():
-    global userselection_product, legalFees, product, plOrCl, terms, amortTerms, loanAmount, interestRate, gracePeriod, borrowerExperience, downPaymentPercent, brandCategory, gdscr, operatorExperience, fico, pcr, nbrOfAows, equipmentGuarantee, guarantee, useOfFunds, monthsSinceBreakeven, franchisorExperience, fccr, fccrBasis, intelliscore
+    global currentUser,userselection_product, legalFees, product, plOrCl, terms, amortTerms, loanAmount, interestRate, gracePeriod, borrowerExperience, downPaymentPercent, brandCategory, gdscr, operatorExperience, fico, pcr, nbrOfAows, equipmentGuarantee, guarantee, useOfFunds, monthsSinceBreakeven, franchisorExperience, fccr, fccrBasis, intelliscore
 
     results = {
         'investmentGrade': '',
@@ -33,37 +34,31 @@ def pricing_model_func():
         'annualNetLossRate': ''
     }
 
+    adverse_results = {0: '',
+                       1: '',
+                       2: '',
+                       3: '', }
+
     previous_data = {}
 
     button = request.form.get('clear')
     if button == 'Clear':
         results = {
             'investmentGrade': '',
-            'investmentGrade':'',
-            'downPaymentMultiplier':'',
-            'unitFailureMultiplier':'',
-            'gdscrMultiplier':'',
-            'operatorExperienceMultiplier':'',
-            'personalCreditMultiplier':'',
-            'pcrMultiplier':'',
-            'loanPurposeMultiplier':'',
-            'timeInBusinessMultiplier':'',
-            'franchsiorExperienceMultiplier':'',
-            'fccrMultiplier':'',
-            'intelliscoreMultiplier':'',
-            'riskFlagMultiplier':'',
             'finalFailureRate':'',
             'cumulativeNetLossRate':'',
             'annualNetLossRate':''
         }
 
-        return render_template("prequal_pricing_model.html", user=current_user, results=results, previous_data=previous_data)
+
+        return render_template("prequal_pricing_model.html", user=current_user,results=results, adverse_results=adverse_results,previous_data=previous_data)
 
     else:
 
         pass
 
     if request.method == 'POST':
+
         previous_data = {
             'product' : request.form.get('product'),
             'plOrCl' : request.form.get('plOrCl'),
@@ -117,7 +112,7 @@ def pricing_model_func():
 
         missing_selection = missing()
         if missing_selection == 'Missing':
-            return render_template("prequal_pricing_model.html", user=current_user, results=results, previous_data=previous_data)
+            return render_template("prequal_pricing_model.html", user=current_user,results=results, adverse_results=adverse_results,previous_data=previous_data)
         else:
             pass
 
@@ -125,7 +120,7 @@ def pricing_model_func():
         userselection_product = request.form.get('product')
         plOrCl = request.form.get('plOrCl')
         legalFees = 10000
-
+        currentUser = current_user.name
 
         if userselection_product == 'New Unit' and plOrCl =='Proposal':
             print('new/proposal')
@@ -154,16 +149,20 @@ def pricing_model_func():
             validation_rules = validations()
 
             if validation_rules == 'Fail':
-                return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+                return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
             else:
                 pass
 
             get_interest_rate()
 
-            new()
-            results = fields
+            log_selections()
 
-            return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+            new()
+            aa_order()
+            results = fields
+            adverse_results = display_dict
+
+            return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results, previous_data=previous_data)
 
         elif userselection_product == 'New Unit' and plOrCl =='Commitment':
             print('new/commitment')
@@ -192,16 +191,20 @@ def pricing_model_func():
             validation_rules = validations()
 
             if validation_rules == 'Fail':
-                return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+                return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
             else:
                 pass
 
             get_interest_rate()
 
-            new()
-            results = fields
+            log_selections()
 
-            return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+            new()
+            aa_order()
+            results = fields
+            adverse_results = display_dict
+
+            return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
 
         elif userselection_product == 'Recap' and plOrCl =='Proposal':
             print('recap/proposal')
@@ -232,16 +235,20 @@ def pricing_model_func():
             validation_rules = validations()
 
             if validation_rules == 'Fail':
-                return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+                return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
             else:
                 pass
 
             get_interest_rate()
 
-            recap()
-            results = fields
+            log_selections()
 
-            return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+            recap()
+            aa_order()
+            results = fields
+            adverse_results = display_dict
+
+            return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
 
         elif userselection_product == 'Recap' and plOrCl =='Commitment':
             print('recap/commitment')
@@ -273,16 +280,20 @@ def pricing_model_func():
 
             validation_rules = validations()
             if validation_rules == 'Fail':
-                return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+                return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
             else:
                 pass
 
             get_interest_rate()
 
-            recap()
-            results = fields
+            log_selections()
 
-            return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+            recap()
+            aa_order()
+            results = fields
+            adverse_results = display_dict
+
+            return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
 
         elif userselection_product == 'Purchase' and plOrCl =='Proposal':
             print('purchase/proposal')
@@ -316,16 +327,20 @@ def pricing_model_func():
             validation_rules = validations()
 
             if validation_rules == 'Fail':
-                return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+                return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
             else:
                 pass
 
             get_interest_rate()
 
-            purchase()
-            results = fields
+            log_selections()
 
-            return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+            purchase()
+            aa_order()
+            results = fields
+            adverse_results = display_dict
+
+            return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
 
         elif userselection_product == 'Purchase' and plOrCl =='Commitment':
             print('purchase/commitment')
@@ -357,23 +372,28 @@ def pricing_model_func():
             validation_rules = validations()
 
             if validation_rules == 'Fail':
-                return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+                return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
             else:
                 pass
 
             get_interest_rate()
-            purchase()
-            results=fields
 
-            return render_template("prequal_pricing_model.html", user=current_user, results=results,previous_data=previous_data)
+            log_selections()
+
+            purchase()
+            aa_order()
+            results = fields
+            adverse_results = display_dict
+
+            return render_template("prequal_pricing_model.html", user=current_user, results=results,adverse_results=adverse_results,previous_data=previous_data)
 
         else:
             print('missed')
             pass
 
-        return render_template("prequal_pricing_model.html", user=current_user,results=results, previous_data=previous_data)
+        return render_template("prequal_pricing_model.html", user=current_user,results=results, adverse_results=adverse_results,previous_data=previous_data)
 
-    return render_template("prequal_pricing_model.html", user=current_user, results=results, previous_data=previous_data)
+    return render_template("prequal_pricing_model.html", user=current_user,results=results, adverse_results=adverse_results,previous_data=previous_data)
 
 
 def missing():
@@ -567,7 +587,7 @@ def validations():
     if option not in valid_options:
         flash('Invalid Term/Amortization', category='error')
         return 'Fail'
-    elif loanAmount < float('100000') or loanAmount > float('600000'):
+    elif loanAmount < float('100000') or loanAmount > float('5000000'):
         flash('Invalid Loan Amount', category='error')
         return 'Fail'
     elif gracePeriod < 0 or gracePeriod >12:
@@ -626,6 +646,93 @@ def get_interest_rate():
     interestRate = float(prime_rate.Rate) + float(spread_rate)
 
     return interestRate
+
+def log_selections():
+    if userselection_product == 'New Unit':
+        if request.form.get('corpGuarantor') == 'on':
+            corpGuarantor = 'True'
+        else:
+            corpGuarantor = 'False'
+
+        prequal_pricing = PrequalPricing(
+            user = currentUser,
+            calculated_date = datetime.datetime.today(),
+            product =userselection_product,
+            pl_cl=plOrCl,
+            term = terms,
+            amortization = amortTerms,
+            corp_guarantor =corpGuarantor,
+            loan_amount=loanAmount,
+            interest_rate = interestRate,
+            brand_category=brandCategory,
+            fico=fico,
+            pcr=pcr,
+            interest_only_period=gracePeriod,
+            borrower_experience=borrowerExperience,
+            down_payment=downPaymentPercent,
+            gdscr=gdscr,
+            operator_experience=operatorExperience,
+            aows=nbrOfAows,
+            equipment_guarantee=equipmentGuarantee,
+            guarantee=guarantee
+        )
+        db.session.add(prequal_pricing)
+        db.session.commit()
+    elif userselection_product == 'Recap':
+        prequal_pricing = PrequalPricing(
+            user=currentUser,
+            calculated_date=datetime.datetime.today(),
+            product=userselection_product,
+            pl_cl=plOrCl,
+            term=terms,
+            amortization=amortTerms,
+            loan_amount=loanAmount,
+            interest_rate=interestRate,
+            brand_category=brandCategory,
+            fico=fico,
+            pcr=pcr,
+            interest_only_period=gracePeriod,
+            use_of_funds=useOfFunds,
+            months_since_breakeven=monthsSinceBreakeven,
+            franchisor_experience=franchisorExperience,
+            fccr=fccr,
+            fccr_basis=fccrBasis,
+            intelliscore=intelliscore,
+            aows=nbrOfAows,
+            equipment_guarantee=equipmentGuarantee,
+            guarantee=guarantee
+        )
+        db.session.add(prequal_pricing)
+        db.session.commit()
+
+    else:
+        prequal_pricing = PrequalPricing(
+            user=currentUser,
+            calculated_date=datetime.datetime.today(),
+            product=userselection_product,
+            pl_cl=plOrCl,
+            term=terms,
+            amortization=amortTerms,
+            loan_amount=loanAmount,
+            interest_rate=interestRate,
+            brand_category=brandCategory,
+            fico=fico,
+            pcr=pcr,
+            interest_only_period=gracePeriod,
+            borrower_experience=borrowerExperience,
+            down_payment=downPaymentPercent,
+            operator_experience=operatorExperience,
+            months_since_breakeven=monthsSinceBreakeven,
+            fccr=fccr,
+            fccr_basis=fccrBasis,
+            intelliscore=intelliscore,
+            aows=nbrOfAows,
+            equipment_guarantee=equipmentGuarantee,
+            guarantee=guarantee
+        )
+        db.session.add(prequal_pricing)
+        db.session.commit()
+
 
 
 # ## Start: Function creation for Pricing Model
@@ -757,7 +864,7 @@ def investment_grade(annl_loss_rate):
     elif annl_loss_rate <= 1.6 / 100:
         return 'E'
     elif annl_loss_rate <= 1.74:
-        return 'HR2'
+        return 'FAIL'
     else:
         return 'FAIL'
 
@@ -806,7 +913,7 @@ def franchisor_exp_multiplier(franchisor_exp):
         return 0.8
     elif franchisor_exp == '5 units/5 years franchising':
         return 0.75
-    elif franchisor_exp == 'Previous successful loan with APC (requires validation of financials)':
+    elif franchisor_exp == 'Previous Successful Loan w/APC':
         return 0.75
     else:
         return 5
@@ -1264,7 +1371,7 @@ def monthly_open_accounts_func(product, monthly_loss_rate_array):
 # ## Product Specific Functions
 
 def new():
-    global fields
+    global fields, resp
     monthlyPayment = monthly_payment(product, loanAmount, interestRate, terms, gracePeriod)
     monthlyBalanceArray = monthly_balance_func(product, loanAmount, interestRate, terms, gracePeriod)
 
@@ -1312,41 +1419,22 @@ def new():
     investmentGrade = investment_grade(annualNetLossRate)
 
     fields = {'investmentGrade': investmentGrade,
-              'product': product,
-              'loanAmount': loanAmount,
-              'interestRate': interestRate,
-              'terms': terms,
-              'gracePeriod': gracePeriod,
-              'monthlyPayment': monthlyPayment,
-              'borrowerExperience': borrowerExperience,
-              'downPaymentPercent': downPaymentPercent,
-              'downPaymentMultiplier': downPaymentMultiplier,
-              'brandCategory': brandCategory,
-              'unitFailureMultiplier': unitFailureMultiplier,
-              'gdscr': gdscr,
-              'gdscrMultiplier': gdscrMultiplier,
-              'operatorExperience': operatorExperience,
-              'operatorExperienceMultiplier': operatorExperienceMultiplier,
-              'fico': fico,
-              'personalCreditMultiplier': personalCreditMultiplier,
-              'pcr': pcr,
-              'pcrMultiplier': pcrMultiplier,
-              'nbrOfAows': nbrOfAows,
-              'riskFlagMultiplier': riskFlagMultiplier,
               'finalFailureRate': finalFailureRate,
-              'equipmentGuarantee': equipmentGuarantee,
-              'guarantee': guarantee,
-              'legalFees': legalFees,
-              'totalNetLoss': totalNetLoss,
-              'avgPortfolioBalance': avgPortfolioBalance,
               'cumulativeNetLossRate': cumulativeNetLossRate,
               'annualNetLossRate': annualNetLossRate
               }
+    resp = { 'downPaymentMultiplier': downPaymentMultiplier,
+              'unitFailureMultiplier': unitFailureMultiplier,
+              'gdscrMultiplier': gdscrMultiplier,
+              'operatorExperienceMultiplier': operatorExperienceMultiplier,
+              'personalCreditMultiplier': personalCreditMultiplier,
+              'pcrMultiplier': pcrMultiplier,
+              'riskFlagMultiplier': riskFlagMultiplier}
 
-    return fields
+    return fields, resp
 
 def recap():
-    global fields
+    global fields, resp
     monthlyPayment = monthly_payment(product, loanAmount, interestRate, terms, gracePeriod)
     monthlyBalanceArray = monthly_balance_func(product, loanAmount, interestRate, terms, gracePeriod)
 
@@ -1398,45 +1486,24 @@ def recap():
     investmentGrade = investment_grade(annualNetLossRate)
 
     fields = {'investmentGrade': investmentGrade,
-              'product': product,
-              'loanAmount': loanAmount,
-              'interestRate': interestRate,
-              'terms': terms,
-              'gracePeriod': gracePeriod,
-              'monthlyPayment': monthlyPayment,
-              'useOfFunds': useOfFunds,
-              'loanPurposeMultiplier': loanPurposeMultiplier,
-              'monthsSinceBreakeven': monthsSinceBreakeven,
-              'timeInBusinessMultiplier': timeInBusinessMultiplier,
-              'brandCategory': brandCategory,
-              'unitFailureMultiplier': unitFailureMultiplier,
-              'franchisorExperience': franchisorExperience,
-              'franchsiorExperienceMultiplier': franchsiorExperienceMultiplier,
-              'fccr': fccr,
-              'fccrBasis': fccrBasis,
-              'fccrMultiplier': fccrMultiplier,
-              'fico': fico,
-              'personalCreditMultiplier': personalCreditMultiplier,
-              'intelliscore': intelliscore,
-              'intelliscoreMultiplier': intelliscoreMultiplier,
-              'pcr': pcr,
-              'pcrMultiplier': pcrMultiplier,
-              'nbrOfAows': nbrOfAows,
-              'riskFlagMultiplier': riskFlagMultiplier,
               'finalFailureRate': finalFailureRate,
-              'equipmentGuarantee': equipmentGuarantee,
-              'guarantee': guarantee,
-              'legalFees': legalFees,
-              'totalNetLoss': totalNetLoss,
-              'avgPortfolioBalance': avgPortfolioBalance,
               'cumulativeNetLossRate': cumulativeNetLossRate,
               'annualNetLossRate': annualNetLossRate
               }
+    resp = {              'loanPurposeMultiplier': loanPurposeMultiplier,
+              'timeInBusinessMultiplier': timeInBusinessMultiplier,
+              'unitFailureMultiplier': unitFailureMultiplier,
+              'franchsiorExperienceMultiplier': franchsiorExperienceMultiplier,
+              'fccrMultiplier': fccrMultiplier,
+              'personalCreditMultiplier': personalCreditMultiplier,
+              'intelliscoreMultiplier': intelliscoreMultiplier,
+              'pcrMultiplier': pcrMultiplier,
+              'riskFlagMultiplier': riskFlagMultiplier}
 
-    return fields
+    return fields, resp
 
 def purchase():
-    global fields
+    global fields, resp
     monthlyPayment = monthly_payment(product, loanAmount, interestRate, terms, gracePeriod)
     monthlyBalanceArray = monthly_balance_func(product, loanAmount, interestRate, terms, gracePeriod)
 
@@ -1486,43 +1553,51 @@ def purchase():
     investmentGrade = investment_grade(annualNetLossRate)
 
     fields = {'investmentGrade': investmentGrade,
-              'product': product,
-              'loanAmount': loanAmount,
-              'interestRate': interestRate,
-              'terms': terms,
-              'gracePeriod': gracePeriod,
-              'monthlyPayment': monthlyPayment,
-              'borrowerExperience': borrowerExperience,
-              'downPaymentPercent': downPaymentPercent,
-              'downPaymentMultiplier': downPaymentMultiplier,
-              'brandCategory': brandCategory,
-              'unitFailureMultiplier': unitFailureMultiplier,
-              'monthsSinceBreakeven': monthsSinceBreakeven,
-              'timeInBusinessMultiplier': timeInBusinessMultiplier,
-              'fccr': fccr,
-              'fccrBasis': fccrBasis,
-              'fccrMultiplier': fccrMultiplier,
-              'operatorExperience': operatorExperience,
-              'operatorExperienceMultiplier': operatorExperienceMultiplier,
-              'fico': fico,
-              'personalCreditMultiplier': personalCreditMultiplier,
-              'pcr': pcr,
-              'pcrMultiplier': pcrMultiplier,
-              'nbrOfAows': nbrOfAows,
-              'riskFlagMultiplier': riskFlagMultiplier,
               'finalFailureRate': finalFailureRate,
-              'equipmentGuarantee': equipmentGuarantee,
-              'guarantee': guarantee,
-              'legalFees': legalFees,
-              'totalNetLoss': totalNetLoss,
-              'avgPortfolioBalance': avgPortfolioBalance,
               'cumulativeNetLossRate': cumulativeNetLossRate,
               'annualNetLossRate': annualNetLossRate
               }
+    
+    resp = {
+        'downPaymentMultiplier': downPaymentMultiplier,
+        'unitFailureMultiplier': unitFailureMultiplier,
+        'timeInBusinessMultiplier': timeInBusinessMultiplier,
+        'fccrMultiplier': fccrMultiplier,
+        'operatorExperienceMultiplier': operatorExperienceMultiplier,
+        'personalCreditMultiplier': personalCreditMultiplier,
+        'pcrMultiplier': pcrMultiplier,
+        'riskFlagMultiplier': riskFlagMultiplier
+    }
+    
+    return fields, resp
 
-    return fields
+def aa_order():
+    global display_dict
+    aa_dict = {
+        'downPaymentMultiplier': 'Down Payment',
+        'unitFailureMultiplier': 'Brand Category',
+        'gdscrMultiplier': 'Global Debt Service Coverage',
+        'operatorExperienceMultiplier': 'Operator Experience',
+        'personalCreditMultiplier': 'FICO Score',
+        'pcrMultiplier': 'Personal Collateral Ratio',
+        'loanPurposeMultiplier': 'Loan Purpose',
+        'timeInBusinessMultiplier': 'Time In Business',
+        'franchsiorExperienceMultiplier': 'Franchisor Experience',
+        'fccrMultiplier': 'Fixed Cost Coverage Ratio',
+        'intelliscoreMultiplier': 'Intelliscore',
+        'riskFlagMultiplier': 'Number of Areas of Weakness'}
+    def sorter(dictionary):
+        sorted_values = sorted_values = sorted(set(dictionary.values()), key=lambda x: np.where(x == None, 0, x), reverse=True)
+        count = 0
+        order = 0
+        top_attr = list()
+        while count < 3:
+            key_list = [key for key, val in dictionary.items() if val == sorted_values[order]]
+            for val in key_list:
+                top_attr.append(val)
+            count += len(key_list)
+            order += 1
+        return top_attr
+    display_dict = {i: aa_dict[multiplier] for i,multiplier in enumerate(sorter(resp))}
 
-
-
-
-
+    return display_dict

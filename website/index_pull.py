@@ -34,18 +34,18 @@ def index_rate_updates():
 
     if row and str(row['Date']) != formatted_dt:
         print('index updates begin')
-        url = "https://ondemand.websol.barchart.com/getQuote.json?apikey=f662dbbcc2a45be5307136cb8e74da08&symbols=SWAEADY3.RT, SWAEADY5.RT, WSJPRIME.RT"
+        url = "https://ondemand.websol.barchart.com/getQuote.json?apikey=f662dbbcc2a45be5307136cb8e74da08&symbols=SOFWAPY3.RT, SOFWAPY5.RT, WSJPRIME.RT"
 
         payload = {}
         headers = {}
         response = requests.request("GET", url, headers=headers, data=payload)
 
         for symbols in response.json()['results']:
-            if symbols['symbol'] == 'SWAEADY3.RT':
+            if symbols['symbol'] == 'SOFWAPY3.RT':
                 swap_3year = symbols['lastPrice']
                 date_3year_str = symbols['tradeTimestamp']
 
-            elif symbols['symbol'] == 'SWAEADY5.RT':
+            elif symbols['symbol'] == 'SOFWAPY5.RT':
                 swap_5year = symbols['lastPrice']
 
         swap_4year = round((swap_3year + swap_5year), 4) / 2

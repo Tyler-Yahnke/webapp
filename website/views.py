@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 import datetime
 from pandas.tseries.offsets import BDay
 import requests
-from .models import SwapRate, PrimeRate, Spreads, EmbeddedFee
+from .models import SwapRate, PrimeRate, Spreads, EmbeddedFee, RateCard
 from sqlalchemy import desc, and_
 import pandas as pd
 from . import db
@@ -62,7 +62,7 @@ def home():
 
 
     if request.method == 'POST':
-
+        print('post start')
         previous_data = {
         'recommit':request.form.get('recommit'),
         'userselection_scooters' : request.form.get('scooters_coffee'),
@@ -76,6 +76,7 @@ def home():
         'selected_date' : request.form.get('selected_date')
                                }
 
+        print('previous data')
 
         recommit = request.form.get('recommit')
         userselection_scooters = request.form.get('scooters_coffee')
@@ -115,9 +116,11 @@ def home():
         today = datetime.datetime.today()
         all_prime = datetime.datetime(2023, 5, 4)
 
+        log_selections()
 
         if userselection_bridge_loan == 'Y':
             bridge_loan_func()
+
             results = bridge_results
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
@@ -184,6 +187,24 @@ def missing():
         flash('Missing down payment', category='error')
         return 'Missing'
     return None
+
+def log_selections():
+    rate_card = RateCard(
+        user=current_user.name,
+        calculated_date=datetime.datetime.today(),
+        recommit=recommit,
+        credit_officer_approval_date=selected_date,
+        scooters=userselection_scooters,
+        bridge=userselection_bridge_loan,
+        rate_type=userselection_ratetype ,
+        term=userselection_term,
+        embedded_fee=userselection_fee ,
+        investment_grade = userselection_grade,
+        pricing_basis=userselection_pricing ,
+        down_payment = userselection_dp
+    )
+    db.session.add(rate_card)
+    db.session.commit()
 
 def bridge_loan_func():
     global bridge_results
