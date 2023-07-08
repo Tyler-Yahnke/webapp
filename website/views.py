@@ -223,6 +223,8 @@ def scooters_func():
     global scooters_results
 
     scooters_date = datetime.datetime(2023, 4, 7)
+    #cashflow scooters deals are now getting cashflow pricing. # Proforma still gets the 1.5%
+    scooters_cash_flow = datetime.datetime(2023, 7, 8)
     selected_date = request.form.get('selected_date')
 
     if selected_date == '' or recommit =='N':
@@ -232,12 +234,40 @@ def scooters_func():
 
 
     if (today - selected_date).days > 120:
-        temp_base_spread = 1.5
-        flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
+        if userselection_pricing =='Pro Forma':
+            temp_base_spread = 1.5
+            flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
+        else:
+            # Selecting rate card
+            selected_spread = Spreads.query.filter(
+                and_(Spreads.Start <= today, Spreads.End >= today,
+                     Spreads.APCGrade == userselection_grade,
+                     Spreads.PricingBasis == userselection_pricing,
+                     Spreads.RateType == userselection_ratetype
+                     )
+            ).first()
+            temp_base_spread = float(getattr(selected_spread, userselection_term))
+            flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
+
     elif selected_date < scooters_date:
         temp_base_spread = .75
-    else:
+
+    elif selected_date >scooters_date and selected_date < scooters_cash_flow:
         temp_base_spread = 1.5
+
+    else:
+        if userselection_pricing =='Pro Forma':
+            temp_base_spread = 1.5
+        else:
+            # Selecting rate card
+            selected_spread = Spreads.query.filter(
+                and_(Spreads.Start <= today, Spreads.End >= today,
+                     Spreads.APCGrade == userselection_grade,
+                     Spreads.PricingBasis == userselection_pricing,
+                     Spreads.RateType == userselection_ratetype
+                     )
+            ).first()
+            temp_base_spread = float(getattr(selected_spread, userselection_term))
 
     # selecting the embedded fee
     selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()
