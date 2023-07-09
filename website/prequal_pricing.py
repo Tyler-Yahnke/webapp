@@ -621,7 +621,8 @@ def validations():
 def get_interest_rate():
     global interestRate
     # Getting Interest Rate
-    today = datetime.datetime.today()
+    date_time = datetime.datetime.today()
+    today = date_time.date()
     userselection_term = f"term_{terms}_{amortTerms}"
     corpGuarantor = request.form.get('corpGuarantor')
     if userselection_product == 'New Unit' and corpGuarantor== None:
