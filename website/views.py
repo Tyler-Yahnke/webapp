@@ -113,7 +113,8 @@ def home():
         down_payment_fee_dict = {'Y': 0.25, 'N': 0.00, 'NA': 0.00}
 
         prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()
-        today = datetime.datetime.today()
+        date_time = datetime.datetime.today()
+        today = date_time.date()
         all_prime = datetime.datetime(2023, 5, 4)
 
         log_selections()
@@ -310,7 +311,6 @@ def current_credit_policy():
         temp_base_spread = getattr(selected_spread, userselection_term)
 
     else:
-
         # Selecting rate card
         selected_spread = Spreads.query.filter(
             and_(Spreads.Start <= today,Spreads.End >= today,
