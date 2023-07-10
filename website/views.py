@@ -15,7 +15,7 @@ views = Blueprint('views', __name__)
 @views.route('/', methods=['GET', 'POST'])
 @login_required
 def home():
-    global recommit, today, prime_rate, userselection_scooters,userselection_term_missing, userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date, down_payment_fee_dict
+    global today_date_time, recommit, today, prime_rate, userselection_scooters,userselection_term_missing, userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date, down_payment_fee_dict
 
 
 
@@ -113,8 +113,8 @@ def home():
         down_payment_fee_dict = {'Y': 0.25, 'N': 0.00, 'NA': 0.00}
 
         prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()
-        date_time = datetime.datetime.today()
-        today = date_time.date()
+        today_date_time = datetime.datetime.today()
+        today = today_date_time.date()
         all_prime = datetime.datetime(2023, 5, 4)
 
         log_selections()
@@ -134,7 +134,8 @@ def home():
 
             selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
 
-            if (today - selected_date).days > 120:
+
+            if (today_date_time - selected_date).days > 120:
                 flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
                 current_credit_policy()
                 rate_card()
@@ -142,11 +143,11 @@ def home():
                 rate_card_table = rate_card_df
                 return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
-            elif selected_date > today:
+            elif selected_date.date() > today_date_time:
                 flash('Can\'t select a future date', category='error')
                 return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
-            elif selected_date <= all_prime and userselection_pricing=='Cash Flow':
+            elif selected_date.date() <= all_prime and userselection_pricing=='Cash Flow':
                 # Previous credit policy can be removed after 9/2/2023
                 previous_credit_policy()
                 results = previous_credit_policy_results
@@ -234,7 +235,7 @@ def scooters_func():
         selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
 
 
-    if (today - selected_date).days > 120:
+    if (today_date_time - selected_date).days > 120:
         if userselection_pricing =='Pro Forma':
             temp_base_spread = 1.5
             flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
@@ -297,7 +298,7 @@ def current_credit_policy():
 
     current_credit_policy_results = {}
 
-    if recommit =="Y" and (today - selected_date).days < 120:
+    if recommit =="Y" and (today_date_time - selected_date).days < 120:
         # Selecting rate card
         selected_spread = Spreads.query.filter(
             and_(
@@ -350,7 +351,7 @@ def current_credit_policy():
 def rate_card():
     global rate_card_df
 
-    if recommit =="Y" and (today - selected_date).days < 120:
+    if recommit =="Y" and (today_date_time - selected_date).days < 120:
         # selecting rate card for the table
         temp_table = db.session.query(Spreads).filter(
             and_(
