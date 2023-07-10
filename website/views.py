@@ -143,11 +143,11 @@ def home():
                 rate_card_table = rate_card_df
                 return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
-            elif selected_date.date() > today_date_time:
+            elif selected_date > today_date_time:
                 flash('Can\'t select a future date', category='error')
                 return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
-            elif selected_date.date() <= all_prime and userselection_pricing=='Cash Flow':
+            elif selected_date <= all_prime and userselection_pricing=='Cash Flow':
                 # Previous credit policy can be removed after 9/2/2023
                 previous_credit_policy()
                 results = previous_credit_policy_results
