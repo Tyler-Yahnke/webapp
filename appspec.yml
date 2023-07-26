@@ -1,0 +1,26 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /home/ubuntu/webapp
+permissions:
+  - object: /home/ubuntu/webapp
+    pattern: "**"
+    owner: ubuntu
+    group: ubuntu
+    mode: 775
+hooks:
+  ApplicationStop:
+    - location: scripts/stop_gunicorn.sh
+      runas: ubuntu
+  BeforeInstall:
+    - location: scripts/refresh_deployment_folders.sh
+      runas: ubuntu
+  AfterInstall:
+    - location: scripts/dependencies_install.sh
+      runas: ubuntu
+  ApplicationStart:
+    - location: scripts/start_gunicorn.sh
+      timeout: 360
+      runas: ubuntu
+
