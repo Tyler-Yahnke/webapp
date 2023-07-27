@@ -52,7 +52,7 @@ def index_rate_updates():
 
         swap_date = datetime.strptime(date_3year_str, '%Y-%m-%dT%H:%M:%S%z').date()
         swap_date_str = swap_date.strftime('%Y-%m-%d')
-        new_vals = [swap_date_str, "{:.2%}".format(swap_3year), "{:.2%}".format(swap_4year), "{:.2%}".format(swap_5year),date.today()]
+        new_vals = [swap_date_str, "{:.2%}".format(swap_3year), "{:.2%}".format(swap_4year), "{:.2%}".format(swap_5year),datetime.datetime.today()]
 
         sql = """
                 INSERT INTO ebdb.swap_rate (`Date`, `3Year`,`4Year`,`5Year`,Created_Date)
@@ -97,7 +97,7 @@ def index_rate_updates():
 
         prime_date = datetime.strptime(prime_rate_str, '%Y-%m-%dT%H:%M:%S%z').date()
         prime_date_str = prime_date.strftime('%Y-%m-%d')
-        new_prime_vals = [prime_date_str, "{:.2%}".format(prime_rate),date.today()]
+        new_prime_vals = [prime_date_str, "{:.2%}".format(prime_rate),datetime.datetime.today()]
 
         sql = """
                     INSERT INTO ebdb.prime_rate (`Date`,`Rate`,'Created_Date')
