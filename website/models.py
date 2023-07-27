@@ -29,11 +29,13 @@ class SwapRate(db.Model):
     three_Year = db.Column('3Year',db.String(45))
     four_Year = db.Column('4Year',db.String(50))
     five_Year = db.Column('5Year',db.String(45))
+    Created_Date = db.Column(db.String(45), unique=True)
 
 class PrimeRate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     Date = db.Column(db.String(45), unique=True)
     Rate = db.Column(db.String(45))
+    Created_Date = db.Column(db.String(45), unique=True)
 
 class EmbeddedFee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
