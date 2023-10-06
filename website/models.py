@@ -104,3 +104,8 @@ class RateCard(db.Model):
     investment_grade = db.Column(db.String(45))
     pricing_basis = db.Column(db.String(45))
     down_payment = db.Column(db.String(45))
+    interest_rate = db.Column(db.String(45))
+    spread_rate = db.Column(db.String(45))
+    index_rate = db.Column(db.String(45))
+    down_payment_penalty = db.Column(db.String(45))
+    embedded_fee_penalty = db.Column(db.String(45))
