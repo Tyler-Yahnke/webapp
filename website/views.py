@@ -117,7 +117,16 @@ def home():
         today_date_time = datetime.datetime.today()
         today = today_date_time.date()
         all_swap = datetime.datetime(2023, 10, 5)
-
+        selected_spread = Spreads.query.filter(
+            and_(
+                Spreads.Start <= today,
+                Spreads.End >= today,
+                Spreads.APCGrade == userselection_grade,
+                Spreads.PricingBasis == userselection_pricing,
+                Spreads.RateType == userselection_ratetype
+            )
+        ).order_by(Spreads.End.desc()).first()
+        most_recent_end_date = selected_spread.End
 
 
         if userselection_bridge_loan == 'Y':
@@ -131,6 +140,11 @@ def home():
             results = scooters_results
             log_selections()
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
+
+        if most_recent_end_date < today:
+            flash('Spread Rates have not been updated. Please notify Tyler Yahnke and Joel Fuentes', category='error')
+            return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,
+                                   previous_data=previous_data)
 
         if recommit == 'Y':
 
