@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, send_file,make_response
+from flask import Blueprint, render_template, request, flash, send_file, make_response
 from flask_login import login_required, current_user
 from . import db
 from docx import Document
@@ -11,7 +11,6 @@ from io import BytesIO
 import zipfile
 
 doc_generator = Blueprint('doc_generator', __name__)
-
 
 @doc_generator.route('/', methods=['GET', 'POST'])
 @login_required
@@ -43,6 +42,10 @@ def doc_generation():
                 with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                     # Iterate through each row in the spreadsheet
                     for row in sheet.iter_rows(min_row=2, values_only=True):
+                        # Check if column A is blank, and if so, break out of the loop
+                        if not row[0]:
+                            break
+
                         # Create a new instance of the Document class for each row
                         doc = Document(word_path)
 
@@ -63,7 +66,12 @@ def doc_generation():
                         # Save the populated Word document for each row
                         name = row[0]  # Assuming the first column contains a unique identifier
                         output_filename = f'{name}_{os.path.basename(word_path)}'
-                        output_path = os.path.join(os.path.dirname(word_path), output_filename)  # Specify the output file path
+                        output_path = os.path.join(os.path.dirname(word_path),
+                                                   output_filename)  # Specify the output file path
+
+                        # Print the document name
+                        #print(f"Processed document: {output_filename}")
+
                         doc.save(output_path)
 
                         # Add the document to the zip file
@@ -83,15 +91,12 @@ def doc_generation():
                 zip_buffer.seek(0)
 
                 # Send the zip file as a download response
-                return send_file(zip_buffer, as_attachment=True, download_name='Tylers_Generated_Documents.zip')
+                return send_file(zip_buffer, as_attachment=True, download_name='NOD_Generated_Documents.zip')
 
             else:
                 # Send a flash message indicating missing documents
                 flash('Missing Document', category='error')
                 return render_template("doc_generator.html", user=current_user)
 
-
     # Render the template if not a POST request or button is not pressed
     return render_template("doc_generator.html", user=current_user)
-
-
