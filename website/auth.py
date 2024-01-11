@@ -77,17 +77,17 @@ def password_reset():
             user = User.query.filter_by(email=email).first()
 
             if user:
-                ##if check_password_hash(user.secret_key, secret_key):
-                user.password = generate_password_hash(password1, method='scrypt')
-                user.last_password_update = datetime.now()
-                user.last_login_date = datetime.now()
-                user.logged_in = True
-                db.session.commit()
-                login_user(user, remember=True)
-                flash(f'Password Updated Successfully! Welcome {user.name}', category='success')
-                return redirect(url_for('views.home'))
-                #else:
-                    #flash('Secret Key is incorrect or expired', category='error')
+                if check_password_hash(user.secret_key, secret_key):
+                    user.password = generate_password_hash(password1, method='scrypt')
+                    user.last_password_update = datetime.now()
+                    user.last_login_date = datetime.now()
+                    user.logged_in = True
+                    db.session.commit()
+                    login_user(user, remember=True)
+                    flash(f'Password Updated Successfully! Welcome {user.name}', category='success')
+                    return redirect(url_for('views.home'))
+                else:
+                    flash('Secret Key is incorrect or expired', category='error')
             else:
                 flash('User does not exist.', category='error')
 
