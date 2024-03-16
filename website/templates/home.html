@@ -94,15 +94,26 @@
                 <input type="date" name="selected_date" id="selectedDate" {% if previous_data.selected_date %}value="{{ previous_data.selected_date }}" {% endif %}>
             </div>
 
-            <label>Scooter's Coffee</label>
-                <select name="scooters_coffee" onchange="toggleDropdown(this.value, 'bridge_loan')">
 
-                    <option value="N" {% if previous_data.userselection_scooters == 'N' %}selected{% endif %}>N</option>
-                    <option value="Y" {% if previous_data.userselection_scooters == 'Y' %}selected{% endif %}>Y</option>
+
+                <label>Brand</label>
+                <select name="brand" id="brand">
+                    <option value="Make Selection" {% if previous_data.userselection_brand == 'Make Selection' %}selected{% endif %}>Make Selection</option>
+                    <option value="Other" {% if previous_data.userselection_brand == 'Other' %}selected{% endif %}>Other</option>
+                    <option value="Scooters" {% if previous_data.userselection_brand == 'Scooters' %}selected{% endif %}>Scooters</option>
+                    <option value="Urban Air Adventure Park" {% if previous_data.userselection_brand == 'Urban Air Adventure Park' %}selected{% endif %}>Urban Air Adventure Park</option>
+
+                </select>
+<br>
+                <label>Bawag Loan</label>
+                <select name="bawag_loan" id="bawag_loan">
+                    <option value="N" {% if previous_data.userselection_bawag_loan == 'N' %}selected{% endif %}>N</option>
+                    <option value="Y" {% if previous_data.userselection_bawag_loan == 'Y' %}selected{% endif %}>Y</option>
+
                 </select>
 <br>
                 <label>Bridge Loan</label>
-                <select name="bridge_loan" onchange="toggleDropdown(this.value, 'scooters_coffee')">
+                <select name="bridge_loan" >
                     <option value="N" {% if previous_data.userselection_bridge_loan == 'N' %}selected{% endif %}>N</option>
                     <option value="Y" {% if previous_data.userselection_bridge_loan == 'Y' %}selected{% endif %}>Y</option>
 
@@ -178,18 +189,7 @@
 
 
     </div>
-      <script>
-    function toggleDropdown(value, dropdownName) {
-        var dropdown = document.querySelector('select[name="' + dropdownName + '"]');
 
-        if (value === 'Y') {
-            dropdown.disabled = true;
-            dropdown.value = 'Make Selection';
-        } else {
-            dropdown.disabled = false;
-        }
-    }
-</script>
 
     <script>
     var recommitLabel = document.getElementById("recommitLabel");
@@ -217,6 +217,38 @@
     }
 </script>
 
+<script>
+    // Function to toggle Bawag Loan field based on the selected brand
+    function toggleBawagLoanField() {
+        var brandSelect = document.getElementById("brand");
+        var bawagLoanField = document.getElementById("bawag_loan");
+
+        // Get the selected brand value
+        var selectedBrand = brandSelect.value;
+
+        // If the selected brand is Urban Air Adventure Park, enable the Bawag Loan field, otherwise set it to 'NA' and disable it
+        if (selectedBrand === "Urban Air Adventure Park") {
+            bawagLoanField.value = "N";
+            bawagLoanField.disabled = false;
+        } else {
+            bawagLoanField.value = "NA";
+            bawagLoanField.disabled = true;
+        }
+    }
+
+    // Call the function when the page is loaded and when the brand selection changes
+    window.onload = function() {
+        toggleBawagLoanField();
+        toggleDatePicker(document.querySelector('select[name="recommit"]').value);
+    };
+
+    document.getElementById("brand").onchange = toggleBawagLoanField;
+
+    // Clear localStorage when the form is submitted or cleared
+    function submitForm() {
+        localStorage.clear();
+    }
+</script>
 
     <div class="form-results">
       <h2>Results</h2>
@@ -242,7 +274,8 @@
    <br>
 <label>Down Payment Premium: {{ results.loan_buyer_dp}}</label>
    <br>
-
+<label>Brand Premium: {{ results.loan_buyer_brand_fee}}</label>
+   <br>
     </div>
 
 <div class="form-ratecard">
@@ -281,9 +314,9 @@
 
 
     <div class="footer">
-        Created and Managed by Tyler Yahnke and Joel Fuentes
+        Created and Managed by Tyler Yahnke
         <br>
-        &copy; 2023 ApplePie Capital, Version 3.2
+        &copy; 2024 ApplePie Capital, Version 4.0
     </div>
 
 

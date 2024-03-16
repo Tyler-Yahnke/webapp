@@ -5,6 +5,8 @@ import requests
 from flask_mail import Message
 from flask import current_app
 from . import mail
+import json
+from bs4 import BeautifulSoup
 
 def index_rate_updates():
     # Connect to the database
@@ -30,6 +32,22 @@ def index_rate_updates():
     prev_Biz_Day = date.today() - BDay(1)
     formatted_dt = prev_Biz_Day.strftime('%Y-%m-%d')
 
+    #web scraping barchart to get rate from website
+    URL1 = 'https://www.barchart.com/stocks/quotes/SOFWAPY3.RT/price-history/historical'
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36'}
+    def swap_pull(url):
+        page = requests.get(url, headers=headers)
+        soup = BeautifulSoup(page.text, 'html.parser')
+        for a in soup.findAll('a', attrs={'class': 'set-alerts-link'}):
+            attributes = a.attrs
+        return json.loads(attributes['data-symbol'])['raw']['lastPrice'], round(
+            100 * json.loads(attributes['data-symbol'])['raw']['lastPrice'], 2)
+
+    swap_3year = swap_pull(URL1)
+    raw_price, formatted_price = swap_3year
+
+
 
     if row and str(row['Date']) != formatted_dt:
         print('index updates begin')
@@ -47,11 +65,27 @@ def index_rate_updates():
             elif symbols['symbol'] == 'SOFWAPY5.RT':
                 swap_5year = symbols['lastPrice']
 
+        # Round the values
+        swap_3year = round(swap_3year * 10000) / 10000
+        swap_5year = round(swap_5year * 10000) / 10000
+
         swap_4year = round((swap_3year + swap_5year), 4) / 2
+
 
         swap_date = datetime.strptime(date_3year_str, '%Y-%m-%dT%H:%M:%S%z').date()
         swap_date_str = swap_date.strftime('%Y-%m-%d')
         new_vals = [swap_date_str, "{:.2%}".format(swap_3year), "{:.2%}".format(swap_4year), "{:.2%}".format(swap_5year),datetime.today()]
+
+        #adding logic to check if website and api match
+        if raw_price != swap_3year:
+            msg = Message('Index Rate does not match Barchart website', sender='passwordreset@apcratecard.com',
+                          recipients=['tyler.yahnke@applepiecapital.com'])
+            msg.body = 'Index Rate does not match Barchart website. Verify if Index Rate is inaccurate in the database.'
+
+            mail.send(msg)
+            return
+        else:
+            pass
 
         sql = """
                 INSERT INTO ebdb.swap_rate (`Date`, `3Year`,`4Year`,`5Year`,Created_Date)

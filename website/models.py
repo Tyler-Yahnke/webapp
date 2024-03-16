@@ -95,6 +95,8 @@ class RateCard(db.Model):
     user = db.Column(db.String(45))
     calculated_date = db.Column(db.String(45))
     recommit = db.Column(db.String(45))
+    brand = db.Column(db.String(90))
+    bawag = db.Column(db.String(45))
     credit_officer_approval_date = db.Column(db.String(45))
     scooters = db.Column(db.String(45))
     bridge = db.Column(db.String(45))
@@ -109,3 +111,4 @@ class RateCard(db.Model):
     index_rate = db.Column(db.String(45))
     down_payment_penalty = db.Column(db.String(45))
     embedded_fee_penalty = db.Column(db.String(45))
+    brand_penalty = db.Column(db.String(45))
