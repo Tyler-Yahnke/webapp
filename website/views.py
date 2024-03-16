@@ -118,13 +118,18 @@ def home():
 
         prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()
         swap_rate = SwapRate.query.order_by(desc(SwapRate.Date)).first().three_Year
-        selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
         today_date_time = datetime.datetime.today()
         today = today_date_time.date()
         all_swap = datetime.datetime(2023, 10, 5)
         brand_fee_date = datetime.datetime(2024, 2, 7)
         prev_Biz_Day = date.today() - BDay(1)
-        formatted_dt = prev_Biz_Day.strftime('%Y-%m-%d')
+
+        if recommit=='Y':
+            selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
+        else:
+            # Handle the case when no date is selected
+            # For example, set selected_date to today's date
+            selected_date = datetime.datetime.today().date()
 
         #Pulling most recent spread to ensure it has been updated
         selected_spread = Spreads.query.filter(
@@ -137,6 +142,7 @@ def home():
             )
         ).order_by(Spreads.End.desc()).first()
         most_recent_end_date = selected_spread.End
+
 
         if recommit=='Y' and selected_date >= brand_fee_date and userselection_brand not in ('Other','Scooters') :
             brand_fee='0.00'
