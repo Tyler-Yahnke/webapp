@@ -230,6 +230,9 @@ def missing():
     elif userselection_brand == 'Make Selection':
         flash('Missing brand', category='error')
         return 'Missing'
+    elif userselection_brand == 'Urban Air Adventure Park' and userselection_bawag_loan is None:
+        flash('Missing Bawag Loan', category='error')
+        return 'Missing'
     elif userselection_fee == 'Make Selection':
         flash('Missing fee', category='error')
         return 'Missing'
