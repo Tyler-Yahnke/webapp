@@ -96,7 +96,7 @@
 
 
 
-                <label>Brands</label>
+                <label>Brand</label>
                 <select name="brand" id="brand">
                     <option value="Make Selection" {% if previous_data.userselection_brand == 'Make Selection' %}selected{% endif %}>Make Selection</option>
                     <option value="Camp Bow Wow" {% if previous_data.userselection_brand == 'Camp Bow Wow' %}selected{% endif %}>Camp Bow Wow</option>
@@ -111,7 +111,8 @@
                     <option value="Urban Air Adventure Park" {% if previous_data.userselection_brand == 'Urban Air Adventure Park' %}selected{% endif %}>Urban Air Adventure Park</option>
 
                 </select>
-<br>
+          <p style="font-size: 0.8em;">If brand is not listed then select <u>Other</u></p>
+
                 <label>Bawag Loan</label>
                 <select name="bawag_loan" id="bawag_loan">
                     <option value="N" {% if previous_data.userselection_bawag_loan == 'N' %}selected{% endif %}>N</option>
