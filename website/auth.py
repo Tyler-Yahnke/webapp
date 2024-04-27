@@ -20,7 +20,6 @@ def login():
         user = User.query.filter_by(email=email).first()
         active_user = User.query.filter_by(email=email).with_entities(User.is_active).scalar()
 
-        print(active_user)
 
         if user and active_user == '1':
             if check_password_hash(user.password, password):

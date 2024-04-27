@@ -114,7 +114,6 @@ def index_rate_updates():
         cursor.execute(sql, new_prime_vals)
         connection.commit()
 
-        print('prime update end')
 
     else:
         print('Prime Pass')
