@@ -16,7 +16,7 @@ views = Blueprint('views', __name__)
 @views.route('/', methods=['GET', 'POST'])
 @login_required
 def home():
-    global brand_fee,all_swap, today_date_time, recommit, today, rate_card_index, prime_rate, swap_rate, userselection_brand, userselection_term_missing, userselection_bawag_loan, userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date, down_payment_fee_dict
+    global brand_fee, today_date_time, recommit, today, rate_card_index, prime_rate, swap_rate, userselection_brand, userselection_term_missing, userselection_bawag_loan, userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date, down_payment_fee_dict
 
 
 
@@ -120,15 +120,11 @@ def home():
         swap_rate = SwapRate.query.order_by(desc(SwapRate.Date)).first().three_Year
         today_date_time = datetime.datetime.today()
         today = today_date_time.date()
-        all_swap = datetime.datetime(2023, 10, 5)
-        brand_fee_date = datetime.datetime(2024, 2, 7)
-        prev_Biz_Day = date.today() - BDay(1)
 
         if recommit=='Y':
             selected_date = datetime.datetime.strptime(selected_date, "%Y-%m-%d")
         else:
-            # Handle the case when no date is selected
-            # For example, set selected_date to today's date
+            # Handle the case when no date is selected. Set selected_date to today's date
             selected_date = datetime.datetime.today().date()
 
         #Pulling most recent spread to ensure it has been updated
@@ -144,12 +140,6 @@ def home():
         most_recent_end_date = selected_spread.End
 
 
-        if recommit=='Y' and selected_date >= brand_fee_date and userselection_brand not in ('Other','Scooters') :
-            brand_fee='0.00'
-        elif today_date_time>= brand_fee_date and userselection_brand not in ('Other','Scooters'):
-            brand_fee='0.00'
-        else:
-            brand_fee='0.00'
 
         if most_recent_end_date < today:
             flash('Spread Rates have not been updated. Please notify Tyler Yahnke and Joel Fuentes', category='error')
@@ -160,6 +150,7 @@ def home():
             flash('Can\'t select a future date', category='error')
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
+        brand_fee_func()
 
         if userselection_bridge_loan == 'Y':
             bridge_loan_func()
@@ -192,14 +183,6 @@ def home():
                 log_selections()
                 return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
-            elif selected_date <= all_swap:
-                previous_credit_policy()
-                rate_card_index = PrimeRate.query.order_by(desc(PrimeRate.Date)).first().Rate
-                rate_card()
-                results = previous_credit_policy_results
-                rate_card_table = rate_card_df
-                log_selections()
-                return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
             else:
                 current_credit_policy()
@@ -269,7 +252,7 @@ def log_selections():
             spread_rate = bridge_results['spread_rate'].strip('%'),
             index_rate = bridge_results['index_rate'].strip('%'),
             down_payment_penalty = '0.00',
-            brand_penalty='0.00',
+            brand_penalty=bridge_results['loan_buyer_brand_fee'].strip('%'),
             embedded_fee_penalty = '0.00'
         )
         db.session.add(rate_card)
@@ -296,7 +279,7 @@ def log_selections():
             spread_rate = scooters_results['spread_rate'].strip('%'),
             index_rate = scooters_results['index_rate'].strip('%'),
             down_payment_penalty = '0.00',
-            brand_penalty='0.00',
+            brand_penalty=scooters_results['loan_buyer_brand_fee'].strip('%'),
             embedded_fee_penalty = scooters_results['loan_buyer_fee'].strip('%')
         )
         db.session.add(rate_card)
@@ -330,32 +313,6 @@ def log_selections():
         db.session.commit()
         print('logged_successfully')
 
-    elif recommit=='Y' and selected_date <= all_swap and (today_date_time - selected_date).days < 120:
-        rate_card = RateCard(
-            user=current_user.name,
-            calculated_date=datetime.datetime.today(),
-            recommit=recommit,
-            credit_officer_approval_date=selected_date,
-            scooters='N',
-            brand=userselection_brand,
-            bawag=userselection_bawag_loan,
-            bridge=userselection_bridge_loan,
-            rate_type=userselection_ratetype ,
-            term=userselection_term,
-            embedded_fee=userselection_fee ,
-            investment_grade = userselection_grade,
-            pricing_basis=userselection_pricing ,
-            down_payment = userselection_dp,
-            interest_rate = previous_credit_policy_results['final_rate'].strip('%'),
-            spread_rate = previous_credit_policy_results['spread_rate'].strip('%'),
-            index_rate = previous_credit_policy_results['index_rate'].strip('%'),
-            down_payment_penalty = previous_credit_policy_results['loan_buyer_dp'].strip('%'),
-            brand_penalty='0.00',
-            embedded_fee_penalty = previous_credit_policy_results['loan_buyer_fee'].strip('%')
-        )
-        db.session.add(rate_card)
-        db.session.commit()
-        print('logged_successfully')
     else:
         rate_card = RateCard(
             user=current_user.name,
@@ -383,6 +340,35 @@ def log_selections():
         db.session.commit()
         print('logged_successfully')
 
+def brand_fee_func():
+    global brand_fee
+    print('brand pricing')
+    brand_fee_date_start = datetime.datetime(2024, 4, 28)
+    brand_fee_date_end = datetime.datetime(2024, 9, 1)
+
+    if recommit == 'Y' and selected_date > brand_fee_date_start and selected_date < brand_fee_date_end:
+        if userselection_pricing== 'Cash Flow' and userselection_brand == 'Fastsigns':
+            brand_fee = '-0.50'
+        elif userselection_pricing== 'Pro Forma' and userselection_brand in ('Camp Bow Wow','My Salon Suite','Phenix','Salons by JC','Sola Salons','Gold Fish Swim School'):
+            brand_fee = '-0.50'
+        else:
+            brand_fee = '0.00'
+    elif recommit == 'Y' and selected_date < brand_fee_date_start:
+
+        brand_fee = '0.00'
+    elif today_date_time > brand_fee_date_start and today_date_time < brand_fee_date_end:
+        if userselection_pricing == 'Cash Flow' and userselection_brand == 'Fastsigns':
+
+            brand_fee = '-0.50'
+        elif userselection_pricing == 'Pro Forma' and userselection_brand in ('Camp Bow Wow', 'My Salon Suite', 'Phenix', 'Salons by JC', 'Sola Salons', 'Gold Fish Swim School'):
+            brand_fee = '-0.50'
+        else:
+            brand_fee = '0.00'
+    else:
+        brand_fee = '0.00'
+
+    return (brand_fee)
+
 def bridge_loan_func():
     global bridge_results
 
@@ -393,6 +379,7 @@ def bridge_loan_func():
     'spread_rate': '3.50%',
     'index_rate': f"{prime_rate.Rate}%",
     'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
+    'loan_buyer_brand_fee': f"0.00%",
     'rate_type': 'Fixed'}
     return(bridge_results)
 
@@ -495,10 +482,6 @@ def urban_func():
 def scooters_func():
     global scooters_results
 
-    #cashflow scooters deals are now getting cashflow pricing. # Proforma still gets the 1.5%
-    scooters_cash_flow = datetime.datetime(2023, 7, 8)
-    #Started using 3year swap 10/6
-    scooters_swaps = datetime.datetime(2023, 10, 5)
     selected_date = request.form.get('selected_date')
 
     if selected_date == '' or recommit =='N':
@@ -518,30 +501,6 @@ def scooters_func():
             index_rate = float(swap_rate)
             index_rate_used = 'Swap - 3 Year'
             flash('Credit Officer Approval Date > 120 Days Ago, Current Month Rate Card Used', category='error')
-
-    elif selected_date < scooters_cash_flow:
-        temp_base_spread = 1.5
-        index_rate = float(prime_rate.Rate)
-        index_rate_used = 'Prime'
-
-    elif selected_date >= scooters_cash_flow and selected_date <= scooters_swaps:
-        if userselection_pricing =='Pro Forma':
-            temp_base_spread = 1.5
-            index_rate = float(prime_rate.Rate)
-            index_rate_used = 'Prime'
-        else:
-            # Selecting rate card
-            selected_spread = Spreads.query.filter(
-                and_(Spreads.Start <= selected_date,
-                Spreads.End >= selected_date,
-                     Spreads.APCGrade == userselection_grade,
-                     Spreads.PricingBasis == userselection_pricing,
-                     Spreads.RateType == userselection_ratetype
-                     )
-            ).first()
-            temp_base_spread = float(getattr(selected_spread, userselection_term))
-            index_rate = float(prime_rate.Rate)
-            index_rate_used = 'Prime'
 
     else:
         if userselection_pricing =='Pro Forma':
@@ -570,7 +529,8 @@ def scooters_func():
         'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
         'rate_type': 'Fixed',
         'loan_buyer_spread': f"{temp_base_spread: .2f}%",
-        'loan_buyer_fee': f"{temp_embedded}%"
+        'loan_buyer_fee': f"{temp_embedded}%",
+        'loan_buyer_brand_fee': f"{brand_fee}%"
     }
     return (scooters_results)
 
@@ -631,51 +591,6 @@ def current_credit_policy():
         'loan_buyer_brand_fee': f"{brand_fee}%"
     }
     return (current_credit_policy_results)
-
-def previous_credit_policy():
-    global previous_credit_policy_results
-
-    previous_credit_policy_results = {}
-
-
-    # Selecting rate card
-    selected_spread = Spreads.query.filter(
-        and_(
-            Spreads.Start <= selected_date,
-            Spreads.End >= selected_date,
-            Spreads.APCGrade == userselection_grade,
-            Spreads.PricingBasis == userselection_pricing,
-            Spreads.RateType == userselection_ratetype
-        )
-    ).first()
-    temp_base_spread = getattr(selected_spread, userselection_term)
-
-
-    # selecting the embedded fee
-    selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()
-    temp_embedded = getattr(selected_fee, userselection_term)
-
-    # base spread
-    base_spread = round(
-        float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp]), 4)
-
-    # final interest rate
-    final_spread = round(base_spread + float(prime_rate.Rate), 4)
-
-    # return results
-    previous_credit_policy_results = {
-        'index_rate_used': 'Prime',
-        'rate_card_used': userselection_pricing,
-        'final_rate': f"{final_spread: .2f}%",
-        'spread_rate': f"{base_spread: .2f}%",
-        'index_rate': f"{prime_rate.Rate}%",
-        'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
-        'rate_type': 'Fixed',
-        'loan_buyer_spread': f"{temp_base_spread: .2f}%",
-        'loan_buyer_fee': f"{temp_embedded}%",
-        'loan_buyer_dp': f"{down_payment_fee_dict[userselection_dp]: .2f}%"
-    }
-    return (previous_credit_policy_results)
 
 def rate_card():
     global rate_card_df

@@ -18,8 +18,11 @@ def login():
         password = request.form.get('password')
 
         user = User.query.filter_by(email=email).first()
+        active_user = User.query.filter_by(email=email).with_entities(User.is_active).scalar()
 
-        if user:
+        print(active_user)
+
+        if user and active_user == '1':
             if check_password_hash(user.password, password):
                 session['logged_in'] = True
                 session.permanent = True
@@ -33,7 +36,7 @@ def login():
             else:
                 flash('Incorrect password, try again.', category='error')
         else:
-            flash('Email does not exist.', category='error')
+            flash('Email does not exist or account is inactive', category='error')
 
     return render_template("login.html", user=current_user)
 
@@ -76,7 +79,7 @@ def password_reset():
         else:
             user = User.query.filter_by(email=email).first()
 
-            if user:
+            if user and active_user == '1':
                 if check_password_hash(user.secret_key, secret_key):
                     user.password = generate_password_hash(password1, method='scrypt')
                     user.last_password_update = datetime.now()
@@ -89,7 +92,7 @@ def password_reset():
                 else:
                     flash('Secret Key is incorrect or expired', category='error')
             else:
-                flash('User does not exist.', category='error')
+                flash('Email does not exist or account is inactive', category='error')
 
     return render_template("password_reset.html", user=current_user, prev_data=prev_data)
 
@@ -101,7 +104,7 @@ def generate_reset_token():
 
     user_email_reset = {'email' : request.form.get('email')}
 
-    if user:
+    if user and active_user == '1':
         token = secrets.token_urlsafe(5)
 
         user.secret_key = generate_password_hash(token, method='scrypt')
@@ -110,7 +113,7 @@ def generate_reset_token():
         flash('Please check email for Secret Key', category='success')
         return (user_email_reset)
     else:
-        flash('Email is invalid or blank', category='error')
+        flash('Email does not exist or account is inactive', category='error')
 
 
 def email_token(token):
