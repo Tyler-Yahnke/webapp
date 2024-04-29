@@ -343,7 +343,7 @@ def log_selections():
 def brand_fee_func():
     global brand_fee
     print('brand pricin')
-    brand_fee_date_start = datetime.datetime(2024, 4, 28)
+    brand_fee_date_start = datetime.datetime(2024, 4, 29)
     brand_fee_date_end = datetime.datetime(2024, 9, 1)
 
     if recommit == 'Y' and selected_date > brand_fee_date_start and selected_date < brand_fee_date_end:
