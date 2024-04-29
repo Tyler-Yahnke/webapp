@@ -343,28 +343,36 @@ def log_selections():
 def brand_fee_func():
     global brand_fee
     print('brand pricin')
-    brand_fee_date_start = datetime.datetime(2024, 4, 29)
+    brand_fee_date_start = datetime.datetime(2024, 4, 28)
     brand_fee_date_end = datetime.datetime(2024, 9, 1)
 
     if recommit == 'Y' and selected_date > brand_fee_date_start and selected_date < brand_fee_date_end:
+        print('here')
         if userselection_pricing== 'Cash Flow' and userselection_brand == 'Fastsigns':
             brand_fee = '-0.50'
         elif userselection_pricing== 'Pro Forma' and userselection_brand in ('Camp Bow Wow','My Salon Suite','Phenix','Salons by JC','Sola Salons','Gold Fish Swim School'):
             brand_fee = '-0.50'
         else:
             brand_fee = '0.00'
-    elif recommit == 'Y' and selected_date < brand_fee_date_start:
-
-        brand_fee = '0.00'
-    elif today_date_time > brand_fee_date_start and today_date_time < brand_fee_date_end:
+    elif recommit == 'Y' and (today_date_time - selected_date).days > 120 and selected_date < brand_fee_date_end:
+        print('here1')
         if userselection_pricing == 'Cash Flow' and userselection_brand == 'Fastsigns':
+            brand_fee = '-0.50'
+        elif userselection_pricing == 'Pro Forma' and userselection_brand in ('Camp Bow Wow', 'My Salon Suite', 'Phenix', 'Salons by JC', 'Sola Salons', 'Gold Fish Swim School'):
+            brand_fee = '-0.50'
+        else:
+            brand_fee = '0.00'
 
+    elif recommit != 'Y' and today_date_time > brand_fee_date_start and today_date_time < brand_fee_date_end:
+        print('here2')
+        if userselection_pricing == 'Cash Flow' and userselection_brand == 'Fastsigns':
             brand_fee = '-0.50'
         elif userselection_pricing == 'Pro Forma' and userselection_brand in ('Camp Bow Wow', 'My Salon Suite', 'Phenix', 'Salons by JC', 'Sola Salons', 'Gold Fish Swim School'):
             brand_fee = '-0.50'
         else:
             brand_fee = '0.00'
     else:
+        print('here3')
         brand_fee = '0.00'
 
     return (brand_fee)
