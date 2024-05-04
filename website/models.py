@@ -61,34 +61,14 @@ class Spreads(db.Model):
     RateType = db.Column(db.String(45))
 
 
-class PrequalPricing(db.Model):
+class CMValidation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.String(45))
     calculated_date = db.Column(db.String(45))
-    product = db.Column(db.String(45))
-    pl_cl = db.Column(db.String(45))
-    corp_guarantor = db.Column(db.String(45))
-    term = db.Column(db.String(45))
-    amortization = db.Column(db.String(45))
-    loan_amount = db.Column(db.String(45))
-    interest_rate = db.Column(db.String(45))
-    brand_category = db.Column(db.String(45))
-    fico = db.Column(db.String(45))
-    pcr = db.Column(db.String(45))
-    interest_only_period = db.Column(db.String(45))
-    borrower_experience = db.Column(db.String(45))
-    down_payment = db.Column(db.String(45))
-    gdscr = db.Column(db.String(45))
-    operator_experience = db.Column(db.String(45))
-    use_of_funds = db.Column(db.String(150))
-    months_since_breakeven = db.Column(db.String(45))
-    franchisor_experience = db.Column(db.String(45))
-    fccr = db.Column(db.String(45))
-    fccr_basis = db.Column(db.String(45))
-    intelliscore = db.Column(db.String(45))
-    aows = db.Column(db.String(45))
-    equipment_guarantee = db.Column(db.String(45))
-    guarantee = db.Column(db.String(45))
+    lai = db.Column(db.String(45))
+    discrepancy = db.Column(db.String(500))
+    unable_to_validate = db.Column(db.String(500))
+
 
 class RateCard(db.Model):
     id = db.Column(db.Integer, primary_key=True)

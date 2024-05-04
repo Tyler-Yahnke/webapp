@@ -52,13 +52,13 @@ def create_app():
     from .auth import auth
     from .fees import fees
     from .doc_generator import doc_generator
-    from .prequal_pricing import prequal_pricing
+    from .cm_validation import cm_validation
 
     application.register_blueprint(auth, url_prefix='/')
     application.register_blueprint(fees, url_prefix='/Fees')
     application.register_blueprint(views, url_prefix='/RateCard')
     application.register_blueprint(doc_generator, url_prefix='/DocGenerator')
-    application.register_blueprint(prequal_pricing, url_prefix='/PrequalPricing')
+    application.register_blueprint(cm_validation, url_prefix='/CreditMemoValidation')
 
     from .models import User
     from .index_pull import index_rate_updates, index_rate_verification
