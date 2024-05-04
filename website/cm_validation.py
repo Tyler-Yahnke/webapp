@@ -11,6 +11,8 @@ import pandas as pd
 import re
 import time
 import datetime
+import os
+import tempfile
 
 cm_validation = Blueprint('cm_validation', __name__)
 
@@ -80,6 +82,13 @@ def doc_extraction():
         flash('No document was submitted.', category='error')
         return render_template("cm_validation.html", user=current_user, potential_discrepancy=potential_discrepancy,
                                not_located=not_located)
+
+    # Save the uploaded document temporarily
+    doc_filename = doc_path.filename
+    temp_dir = tempfile.gettempdir()
+    temp_doc_path = os.path.join(temp_dir, doc_filename)
+    doc_path.save(temp_doc_path)
+
     def standardize_column_title(title):
         # Regular expression patterns to match variations of column titles
         patterns = [
@@ -130,8 +139,12 @@ def doc_extraction():
         table_content = extract_text_from_table(doc)
         return table_content
 
-    # Extract content from the document
-    content = extract_text_from_docx(doc_path)
+    # Extract content from the temporary document
+    content = extract_text_from_docx(temp_doc_path)
+
+    # Remove the temporary document file
+    os.remove(temp_doc_path)
+
     return content
 
 def looker_bwg_table():
