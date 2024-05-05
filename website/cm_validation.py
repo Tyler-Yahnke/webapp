@@ -196,7 +196,7 @@ def looker_bwg_table():
         return matching_df
 
     except Exception as e:
-        #matching_df = pd.DataFrame()
+        matching_df = pd.DataFrame()
         flash('Looker Timeout Error. Wait and Rerun', category='error')
         return render_template("cm_validation.html", user=current_user, potential_discrepancy=potential_discrepancy,
                                not_located=not_located), matching_df
