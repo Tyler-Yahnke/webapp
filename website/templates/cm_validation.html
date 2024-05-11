@@ -80,7 +80,7 @@
 </head>
 <body>
     <div id="message" style="display: none; background-color: #d4edda; color: #155724; padding: 10px; text-align: left; font-weight: bold;">
-         Doc Successfully Uploaded. Be Patient...I am thinking
+         Doc Successfully Uploaded. Be patient...I am thinking
     </div>
     <h1 class="modern-heading">Credit Memo Validation</h1>
 
@@ -91,7 +91,7 @@
             <tr>
                 <th>Field</th>
                 <th>Credit Memo</th>
-                <th>Looker Report</th>
+                <th>Platform Data / Looker Report</th>
             </tr>
         {% for field, values in potential_discrepancy.items() %}
         <tr>
@@ -106,6 +106,13 @@
     <div class="form-container">
         <h3 class="section-heading">Unable to Compare</h3>
             {% for item in not_located %}
+            <li>{{ item }}</li>
+        {% endfor %}
+        </div>
+
+        <div class="form-container">
+        <h3 class="section-heading">Missing Value in BWG Report</h3>
+            {% for item in missing_bwg_data %}
             <li>{{ item }}</li>
         {% endfor %}
         </div>
