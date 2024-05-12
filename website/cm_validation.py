@@ -88,6 +88,16 @@ def credit_memo_validation():
         acr_pcv_pcr()
         liquidity()
 
+        #checking if potential discrepancies is empty. If so add positive message
+        if not potential_discrepancy:
+            potential_discrepancy['No Discrepancies Found'] = {
+                'document_value':'' ,
+                'dataframe_value':''
+            }
+        # checking if not located is empty. If so add positive message
+        if not not_located:
+            not_located.append("Able to Compare All Fields")
+
 
         #logging data
         log_selections()
@@ -331,6 +341,11 @@ def bwg_completness_check():
     for column in matching_df.columns:
         if matching_df[column].isnull().any():
             missing_bwg_data.append(column)
+
+    #if no missing data add this text
+    if not missing_bwg_data:
+        missing_bwg_data.append("No Missing Information in BWG Report")
+
 
     # Remove text before the dot for each column name in the list
     missing_bwg_data = [column.split('.')[1] if '.' in column else column for column in missing_bwg_data]

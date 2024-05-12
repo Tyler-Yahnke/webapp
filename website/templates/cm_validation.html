@@ -118,9 +118,9 @@
         </div>
 
     <div class="form-container">
-        <form method="POST" enctype="multipart/form-data" onsubmit="showMessage()">
+        <form method="POST" enctype="multipart/form-data" onsubmit="validateAndShow()">
             <h3 class="section-heading">Select Credit Memo</h3>
-            <input type="file" name="file" accept=".docx">
+            <input type="file" id="fileInput" name="file" accept=".docx">
             <br><br>
             <input type="submit" name='Validate' class="btn btn-primary" value="Validate">
             <br><br>
@@ -132,12 +132,37 @@
     </div>
     <br><br>
     <br><br>
-    <script>
-        function showMessage() {
-            var message = document.getElementById('message');
-            message.style.display = 'block';
+<script>
+    function validateAndShow() {
+        // Call validateFileSize to check file size
+        var isValid = validateFileSize();
+        // If file size is valid, show message
+        if (isValid) {
+            showMessage();
         }
-    </script>
+        // Return the validation result
+        return isValid;
+    }
+
+    function showMessage() {
+        var message = document.getElementById('message');
+        message.style.display = 'block';
+    }
+
+    function validateFileSize() {
+        console.log('Validating file size...');
+        var fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length > 0) {
+            var fileSize = fileInput.files[0].size;
+            if (fileSize > 1048576) { // 1 MB in bytes
+                alert('File size exceeds 1MB limit. Please copy and paste CM details into new word doc. Save word doc and re-upload.');
+                return false; // Prevent form submission
+            }
+        }
+        console.log('File size within limit.');
+        return true; // Allow form submission
+    }
+</script>
 
 </body>
 
