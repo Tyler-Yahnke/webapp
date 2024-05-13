@@ -76,13 +76,51 @@
             background-color: #d4edda; /* Background color */
             color: #155724; /* Text color */
         }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #d4edda;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            z-index: 9999; /* Ensure the popup appears above other elements */
+        }
+        .spinner {
+            display: block;
+            margin: 0 auto;
+            width: 150px; /* Adjust the size of the spinner as needed */
+            height: 150px;
+            background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZGc5cDFyYmt2d3lnNGRuNzRyNGtvZ2U1YmJwcjRmbndqNTRzOHI5MSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IJNQqqtwmYZHdkdGZM/giphy.gif'); /* Replace 'path/to/spinner.gif' with the path to your spinner image */
+            background-size: cover;
+
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .popup-text {
+            text-align: center;
+            margin-top: 10px;
+            font-family: 'Raleway', sans-serif;
+            font-size: 25px;
+            color: #155724; /* Adjust the color as needed */
+        }
     </style>
 </head>
 <body>
-    <div id="message" style="display: none; background-color: #d4edda; color: #155724; padding: 10px; text-align: left; font-weight: bold;">
-         Doc Successfully Uploaded. Be patient...I am thinking
-    </div>
+
     <h1 class="modern-heading">Credit Memo Validation</h1>
+
+
+        <div id="popup" class="popup">
+        <div class="spinner"></div>
+        <p class="popup-text">Processing Document...</p>
+    </div>
+
 
 
     <div class="form-container">
@@ -137,16 +175,9 @@
         // Call validateFileSize to check file size
         var isValid = validateFileSize();
         // If file size is valid, show message
-        if (isValid) {
-            showMessage();
-        }
+
         // Return the validation result
         return isValid;
-    }
-
-    function showMessage() {
-        var message = document.getElementById('message');
-        message.style.display = 'block';
     }
 
     function validateFileSize() {
@@ -162,6 +193,37 @@
         return true; // Allow form submission
     }
 </script>
+
+<script>
+        function validateAndShow() {
+            // Call validateFileSize to check file size
+            var isValid = validateFileSize();
+            // If file size is valid, show the popup
+            if (isValid) {
+                showPopup();
+            }
+            // Return the validation result
+            return isValid;
+        }
+
+        function showPopup() {
+            var popup = document.getElementById('popup');
+            popup.style.display = 'block';
+        }
+
+        function validateFileSize() {
+            var fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length > 0) {
+                var fileSize = fileInput.files[0].size;
+                if (fileSize > 1048576) { // 1 MB in bytes
+                    alert('File size exceeds 1MB limit. Please copy and paste CM details into new word doc. Save word doc and re-upload.');
+                    return false; // Prevent form submission
+                }
+            }
+            console.log('File size within limit.');
+            return true; // Allow form submission
+        }
+    </script>
 
 </body>
 

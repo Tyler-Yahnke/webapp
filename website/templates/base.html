@@ -46,9 +46,7 @@
         {% if user.is_authenticated %}
         <a class="nav-item nav-link" id="home" href="/RateCard">Rate Card</a>
           <a class="nav-item nav-link" id="fees" href="/Fees">Fees</a>
-        {% if user.role == 'Developer' %}
           <a class="nav-item nav-link" id="cm_validation" href="/CreditMemoValidation">Credit Memo Validation</a>
-          {% endif %}
           <a class="nav-item nav-link" id="doc_generator" href="/DocGenerator">Document Generator</a>
         <a class="nav-item nav-link" id="logout" href="/logout">Logout</a>
         {% else %}
