@@ -103,7 +103,7 @@ def generate_reset_token():
 
     user_email_reset = {'email' : request.form.get('email')}
 
-    if user and active_user == '1':
+    if user:
         token = secrets.token_urlsafe(5)
 
         user.secret_key = generate_password_hash(token, method='scrypt')
