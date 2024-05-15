@@ -131,6 +131,7 @@ def doc_extraction():
     def standardize_column_title(title):
         # Regular expression patterns to match variations of column titles
         patterns = [
+            (r'LAI\s*(?:\(\d+\))?', 'LAI #'),
             (r'Franchise\s*(?:\(\d+\))?', 'Franchise Brand | Category |  Partner/Non-Partner'),
             (r'Breakdown\s*(?:\(\d+\))?', 'Breakdown of Ownership'),
             (r'Personal\s+Guarantors\s*(?:\(\d+\))?', 'Personal Guarantors'),
@@ -163,18 +164,7 @@ def doc_extraction():
                     if idx == 0:
                         left_text = cell_text
                     elif idx == 1:
-                        if left_text == "Important Ratios" and not cell_text.strip():
-                            # Assuming cell contains a table, parse it as such
-                            table_rows = []
-                            for sub_cell in cell.paragraphs:
-                                sub_cell_text = sub_cell.text.strip()
-                                sub_cell_data = sub_cell_text.split(':')
-                                if len(sub_cell_data) == 2:
-                                    table_rows.append(sub_cell_data)
-                            # Store the table rows
-                            table_content[left_text] = table_rows
-                        else:
-                            right_text = cell_text
+                        right_text = cell_text
                     else:
                         # Handle cells with more than two columns
                         # You can skip them or handle them differently based on your requirements
@@ -189,6 +179,7 @@ def doc_extraction():
 
     # Extracting text
     def extract_text_from_docx(docx_path):
+        global doc
         doc = Document(docx_path)  # Assuming the document is in .docx format
         table_content = extract_text_from_table(doc)
         return table_content
@@ -198,7 +189,6 @@ def doc_extraction():
 
     # Remove the temporary document file
     os.remove(temp_doc_path)
-
     return content
 
 def looker_data_pull():
@@ -218,6 +208,7 @@ def looker_data_pull():
         return df
 
     content_value = content.get('LAI #')
+    print(content_value)
 
     query = f"""
 select distinct 
