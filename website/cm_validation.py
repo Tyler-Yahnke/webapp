@@ -189,6 +189,7 @@ def doc_extraction():
 
     # Remove the temporary document file
     os.remove(temp_doc_path)
+
     return content
 
 def looker_data_pull():
@@ -208,7 +209,6 @@ def looker_data_pull():
         return df
 
     content_value = content.get('LAI #')
-    print(content_value)
 
     query = f"""
 select distinct 
