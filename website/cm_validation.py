@@ -134,9 +134,11 @@ def doc_extraction():
             (r'LAI\s*(?:\(\d+\))?', 'LAI #'),
             (r'Franchise\s*(?:\(\d+\))?', 'Franchise Brand | Category |  Partner/Non-Partner'),
             (r'Breakdown\s*(?:\(\d+\))?', 'Breakdown of Ownership'),
+            (r'Down\s*(?:\(\d+\))?', 'Down Payment | %'),
             (r'Personal\s+Guarantors\s*(?:\(\d+\))?', 'Personal Guarantors'),
             (r'Corporate\s*(?:\(\d+\))?', 'Corporate guarantor'),
             (r'Borrowing\s+Entity\s*(?:\(\d+\))?', 'Borrowing Entity'),
+            (r'FICO\s*(?:\(\d+\))?', 'FICO Results'),
             (r'Previous\s*(?:\(\d+\))?', 'Global Exposure'),
             (r'Important\s*(?:\(\d+\))?', 'Important Ratios'),
             (r'Credit\s+Exception\s*(?:\(\d+\))?', 'Credit Exception Required'),
@@ -152,6 +154,14 @@ def doc_extraction():
 
         # If no match is found, return the original title
         return title
+
+    def extract_text_from_inner_table(cell):
+        inner_table_content = ""
+        for table in cell.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    inner_table_content += cell.text.strip() + " "
+        return inner_table_content.strip()
 
     def extract_text_from_table(doc):
         table_content = {}
@@ -171,8 +181,12 @@ def doc_extraction():
                         pass
 
                 # If both left and right text are found, store them in table_content
-                if left_text is not None and right_text is not None:
+                if left_text is not None:
                     standardized_title = standardize_column_title(left_text)
+                    if standardized_title == 'Important Ratios' and not right_text:
+                        # Extract data from the table within the cell to the right of the Important Ratios cell
+                        if len(row.cells) > 1:
+                            right_text = extract_text_from_inner_table(row.cells[1])
                     table_content[standardized_title] = right_text
 
         return table_content
@@ -186,7 +200,6 @@ def doc_extraction():
 
     # Extract content from the temporary document
     content = extract_text_from_docx(temp_doc_path)
-
     # Remove the temporary document file
     os.remove(temp_doc_path)
 
@@ -396,26 +409,26 @@ def borrowing_entity():
         not_located.append('Borrowing Entity')
     return potential_discrepancy, not_located
 
+
 def breakdown_of_ownership():
     global potential_discrepancy, not_located
 
     try:
-        # Regular expression pattern to match ownership percentages and person names
-        pattern = r'(\d+%)\s+owned\s+by\s+([^\n]+)'
-
-        #try:
         ownership_dict = {}
-
         # Iterate through each line of text and extract ownership percentage and person's name
         for line in content['Breakdown of Ownership'].split('\n'):
 
-            #stripping bullet points
+            # Stripping bullet points
             line = line.strip().lstrip('•').lstrip('•')
 
+            pattern = r'(\d+%)\s+owned\s+by\s+([^\n]+)'
             match = re.search(pattern, line)
 
             additional_pattern = r'([^\n]+):\s*(\d+%)'
             additional_match = re.search(additional_pattern, line)
+
+            additional_matching = r'([^\-]+)\s*-\s*(\d+%)'
+            additional_matching_pattern = re.search(additional_matching, line)
 
             if match:
                 ownership_percentage = match.group(1).rstrip('%')
@@ -427,6 +440,11 @@ def breakdown_of_ownership():
                 ownership_percentage = additional_match.group(2).rstrip('%')
                 ownership_dict[person_name] = int(ownership_percentage)
 
+            elif additional_matching_pattern:
+                person_name = additional_matching_pattern.group(1).strip().upper()
+                ownership_percentage = additional_matching_pattern.group(2).rstrip('%')
+                ownership_dict[person_name] = int(ownership_percentage)
+
             else:
                 another_pattern = r'([A-Za-z]+\s[A-Za-z]+)\s*–\s*(\d+)%'
                 another_pattern_match = re.search(another_pattern, line)
@@ -435,8 +453,7 @@ def breakdown_of_ownership():
                     ownership_percentage = another_pattern_match.group(2).rstrip('%')
                     ownership_dict[person_name] = int(ownership_percentage)
 
-
-        #Finding guarantors and their percentages
+        # Finding guarantors and their percentages
         guarantors_dict = {}
 
         filtered_df = matching_df[(matching_df['guarantor_data.entity_type'] == 'individual')]
@@ -451,6 +468,7 @@ def breakdown_of_ownership():
             # Add guarantor and ownership percentage to the dictionary
             guarantors_dict[guarantor_name] = ownership_percentage
 
+        counter = 1
         # Iterate over each person in the ownership dictionary
         for person, percentage in ownership_dict.items():
             # Check if the person exists in the guarantors dictionary
@@ -458,19 +476,28 @@ def breakdown_of_ownership():
                 # Compare ownership percentages
                 if percentage != guarantors_dict[person]:
                     # If ownership percentages don't match, add discrepancy to potential_discrepancy dictionary
-                    potential_discrepancy['Ownership Percentage'] = {
+                    potential_discrepancy['Ownership Percentage' + str(counter)] = {
                         'document_value': person + ':'+ str(percentage)+'%',
                         'dataframe_value': person + ':' + str(guarantors_dict[person])+'%'
                     }
+                counter +=1
             else:
                 # If person doesn't exist in guarantors dictionary, add them to the not_located list
-                not_located.append('Breakdown of Ownership' +'('+person + ':'+ str(percentage)+'%'+')')
+                potential_discrepancy['Ownership Percentage'+str(counter)] = {
+                    'document_value': person + ':' + str(percentage) + '%',
+                    'dataframe_value': "No Match. Verify Spelling"
+                }
+                counter += 1
 
-        # Iterate over each person in the guarantors dictionary to find any missing individuals
+                # Iterate over each person in the guarantors dictionary to find any missing individuals
+        counters = 10
         for person in guarantors_dict:
             if person not in ownership_dict:
-                # If person exists in guarantors dictionary but not in ownership dictionary, add them to not_located list
-                not_located.append('Breakdown of Ownership' +'('+person + ':'+ str(percentage)+'%'+')')
+                potential_discrepancy['Ownership Percentage'+str(counters)] = {
+                    'document_value': "No Match. Verify Spelling of Name",
+                    'dataframe_value': person + ':'+ str(guarantors_dict[person])+'%'
+                }
+                counters += 1
 
         # Return potential discrepancies and not_located list
         return potential_discrepancy, not_located
@@ -508,7 +535,7 @@ def credit_exception():
     global potential_discrepancy, not_located
 
     try:
-        if content['Credit Exception Required'] in [ 'No', 'NO','N/A', 'NA','n/a','na','Na','N/a', '']:
+        if content['Credit Exception Required'] in [ 'No', 'NO','N/A', 'NA','n/a','na','Na','N/a','None', '']:
             credit_exception_doc ='No'
         else:
             credit_exception_doc = 'Yes'
@@ -527,41 +554,49 @@ def personal_guarantors():
     global potential_discrepancy, not_located
     # Personal Guarantors
     try:
+        personal_guarantors_doc_dict = {}
+        personal_guarantors_df_dict = {}
+
         personal_guarantors_doc = set(
-            part.strip().upper().replace(',', '').replace(' ', '')
+            part.strip().upper().replace(',', '')
             for line in str(content['Personal Guarantors']).split('\n')
             for part in line.split(',')
             if part.strip()  # Exclude empty substrings
         )
-        personal_guarantors_list = list(personal_guarantors_doc)
+
+        for guarantor in personal_guarantors_doc:
+            personal_guarantors_doc_dict[guarantor] = None  # or any other initial value
+
+
 
         # Filtering out non guarantors
         filtered_df = matching_df[(matching_df['guarantor_data.ownership_percentage'].notnull()) & (
                 matching_df['guarantor_data.entity_type'] == 'individual')]
         personal_guarantors_df = set(
-            (filtered_df['guarantor_data.guarantor_first_name'].str.strip().replace(' ', '') +
+            (filtered_df['guarantor_data.guarantor_first_name'].str.strip()+ " " +
              filtered_df['guarantor_data.guarantor_last_name'].str.strip()).str.upper())
-        personal_guarantors_df_list = list(personal_guarantors_df)
 
-        # Find guarantors in document list but not in DataFrame list
-        missing_in_df = set(personal_guarantors_list) - set(personal_guarantors_df_list)
-        # Find guarantors in DataFrame list but not in document list
-        missing_in_doc = set(personal_guarantors_df_list) - set(personal_guarantors_list)
+        for guarantor in personal_guarantors_df:
+            personal_guarantors_df_dict[guarantor] = None  # or any other initial value
 
-        personal_guarantors_doc_ui = set(str(content['Personal Guarantors']).split('\n'))
-        personal_guarantors_df_ui = set(filtered_df['guarantor_data.guarantor_first_name'] + ' ' + filtered_df['guarantor_data.guarantor_last_name'])
-        personal_guarantors_df_ui_display = ', '.join(str(name) for name in personal_guarantors_df_ui)
+        counter = 1
+        for guarantor in personal_guarantors_df_dict:
+            if guarantor not in personal_guarantors_doc_dict:
+                potential_discrepancy['Personal Guarantors CM'+ str(counter)] = {
+                    'document_value': guarantor,
+                    'dataframe_value': "No Match. Verify Spelling"
+                }
+            counter +=1
 
-        for guarantor in missing_in_df:
-            potential_discrepancy['Personal Guarantors CM'] = {
-                'document_value': ', '.join(personal_guarantors_doc_ui),
-                'dataframe_value': personal_guarantors_df_ui_display
-            }
-        for guarantor in missing_in_doc:
-            potential_discrepancy['Personal Guarantors DB'] = {
-                'document_value': ', '.join(personal_guarantors_doc_ui),
-                'dataframe_value': personal_guarantors_df_ui_display
-            }
+        counters = 1
+        for guarantor in personal_guarantors_doc_dict:
+            if guarantor not in personal_guarantors_df_dict:
+                potential_discrepancy['Personal Guarantors DB' + str(counters)] = {
+                    'document_value': 'No Match. Verify Spelling',
+                    'dataframe_value': guarantor
+                }
+            counters +=1
+
     except Exception as e:
         not_located.append('Personal Guarantors')
     return potential_discrepancy, not_located
@@ -608,7 +643,6 @@ def corporate_guarantors():
     except Exception as e:
         not_located.append('Corporate Guarantor')
 
-
 def address_of_subject_unit():
     global potential_discrepancy, not_located
 
@@ -624,7 +658,7 @@ def address_of_subject_unit():
             address_df = (
                     str(matching_df['loans.business_property_location_address'].iloc[0]) + ', ' +
                     str(matching_df['loans.business_property_location_city'].iloc[0]) + ', ' +
-                    str(matching_df['loans.business_property_location_state'].iloc[0]) + ', ' +
+                    str(matching_df['loans.business_property_location_state'].iloc[0]) +
                     str(matching_df['loans.business_property_location_zip'].iloc[0])
             ).replace(" ", "").upper()
 
@@ -661,43 +695,45 @@ def down_payment():
     try:
         down_payment_str = str(content.get('Down Payment | %', ''))
 
-        # Check if the string contains the '|' character
+
         if '|' in down_payment_str:
             down_payment_parts = down_payment_str.split(" | ")
             if len(down_payment_parts) == 2:
-
                 down_payment_amount_doc = down_payment_parts[0].replace("$", "").replace(" ", "").replace(",", "").replace("%", "").replace("(", "").replace(")", "")
                 down_payment_percent_doc = down_payment_parts[1].replace("%", "").replace(" ", "").replace("(","").replace(")", "")
-
-                if down_payment_percent_doc != str(matching_df['loans.down_payment_percent'].iloc[0]):
-                    potential_discrepancy['Down Payment % '] = {
-                        'document_value': down_payment_percent_doc,
-                        'dataframe_value': matching_df['loans.down_payment_percent'].iloc[0]
-                    }
-            else:
-                potential_discrepancy['Down Payment % '] = {
-                    'document_value': "",
-                    'dataframe_value': matching_df['loans.down_payment_percent'].iloc[0]
-                }
         else:
-            potential_discrepancy['Down Payment % '] = {
+            # Check if the string matches the pattern "$amount (percentage%)"
+            match = re.match(r'\$([\d,]+(?:\.\d+)?)\s*\((\d+(?:\.\d+)?)%\)', down_payment_str)
+            if match:
+                down_payment_amount_doc = match.group(1).replace("$", "").replace(" ", "").replace(",", "")
+                down_payment_percent_doc = match.group(2).replace(" ", "").replace(",", "").replace("%", "").replace("(", "").replace(")", "")
+
+        # Compare the extracted values with the dataframe values
+        try:
+            if int(down_payment_amount_doc) != int(matching_df['loans.down_payment'].iloc[0]):
+                potential_discrepancy['Down Payment Amount'] = {
+                    'document_value': down_payment_amount_doc,
+                    'dataframe_value': matching_df['loans.down_payment'].iloc[0]
+                }
+        except Exception as e:
+            potential_discrepancy['Down Payment Amount'] = {
+                'document_value': "",
+                'dataframe_value': matching_df['loans.down_payment'].iloc[0]
+            }
+
+        try:
+            if float(down_payment_percent_doc) != int(matching_df['loans.down_payment_percent'].iloc[0]):
+                potential_discrepancy['Down Payment %'] = {
+                    'document_value': down_payment_percent_doc,
+                    'dataframe_value': int(matching_df['loans.down_payment_percent'].iloc[0])
+                }
+        except Exception as e:
+
+            potential_discrepancy['Down Payment %'] = {
                 'document_value': "",
                 'dataframe_value': matching_df['loans.down_payment_percent'].iloc[0]
             }
-            # If '|' is not present, assume down_payment_str contains only the down payment amount
-            down_payment_amount_doc = down_payment_str.replace("$", "").replace(" ", "").replace(",","").replace("%", "").replace("(", "").replace(")", "")
 
-    except Exception as e:
-        not_located.append('Down Payment | %')
-
-
-    try:
-        print()
-        if int(down_payment_amount_doc) != int(matching_df['loans.down_payment'].iloc[0]):
-            potential_discrepancy['Down Payment Amount'] = {
-                'document_value': down_payment_amount_doc,
-                'dataframe_value': matching_df['loans.down_payment'].iloc[0]
-            }
     except Exception as e:
         not_located.append('Down Payment | %')
 
@@ -849,7 +885,7 @@ def important_ratios():
     # including TIs
 
     if not content['Important Ratios']:
-        not_located.append('Important Ratios cant be in a table')
+        not_located.append('Important Ratios')
     else:
         try:
             projected_gdscr_doc = re.search(projected_gdscr, content['Important Ratios']).group(1)
@@ -906,7 +942,7 @@ def important_ratios():
 def fico_results():
     global potential_discrepancy, not_located
 
-    pattern = r'([A-Za-z]+ [A-Za-z]+)(?: – |, )(\d{3})'
+    pattern = r'([A-Za-z]+ [A-Za-z]+)\s*(?:[-–,])\s*(\d{3})'
 
     try:
 
@@ -928,7 +964,6 @@ def fico_results():
         for index, row in filtered_df.iterrows():
             name = row['guarantor_data.guarantor_first_name'].upper() + " " + row['guarantor_data.guarantor_last_name'].upper()
             fico_df[name] = row['guarantor_fico']
-
 
         counter = 1
         for name, fico_score in fico_df.items():

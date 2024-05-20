@@ -178,7 +178,7 @@
                 </select>
 <br>
                 <label>Down Payment less than 20%</label>
-                <select name="down_payment">
+                <select name="down_payment" id="down_payment">
                     <option value="Make Selection" {% if previous_data.userselection_dp == 'Make Selection' %}selected{% endif %}>Make Selection</option>
                     <option value="Y" {% if previous_data.userselection_dp == 'Y' %}selected{% endif %}>Y</option>
                     <option value="N" {% if previous_data.userselection_dp == 'N' %}selected{% endif %}>N</option>
@@ -255,6 +255,20 @@
     function submitForm() {
         localStorage.clear();
     }
+</script>
+
+<script>
+document.getElementById('brand').addEventListener('change', function() {
+    var brand = this.value;
+    var downPaymentSelect = document.getElementById('down_payment');
+
+    if (brand === 'Scooters') {
+        downPaymentSelect.value = 'NA';
+        downPaymentSelect.disabled = true; // Disable the dropdown
+    } else {
+        downPaymentSelect.disabled = false; // Enable the dropdown for other selections
+    }
+});
 </script>
 
     <div class="form-results">

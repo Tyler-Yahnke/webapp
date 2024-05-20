@@ -113,7 +113,7 @@ def home():
         }
         userselection_term = term_dict.get(request.form.get('term'))
 
-        down_payment_fee_dict = {'Y': 0.25, 'N': 0.00, 'NA': 0.00}
+        down_payment_fee_dict = {'Y': 0.25, 'N': 0.00, 'NA': 0.00, None: 0.00}
 
 
         prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()
@@ -159,9 +159,21 @@ def home():
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
         if userselection_brand == 'Scooters':
-            scooters_func()
-            results = scooters_results
-            log_selections()
+
+            #Date Scooters Stopped having special pricing
+            scooters_end_date = datetime.datetime(2024, 5, 20)
+            if recommit =='Y' and selected_date < scooters_end_date and (today_date_time - selected_date).days < 120:
+                scooters_func()
+                results = scooters_results
+                log_selections()
+            else:
+                current_credit_policy()
+                rate_card_index = SwapRate.query.order_by(desc(SwapRate.Date)).first().three_Year
+                rate_card()
+                results = current_credit_policy_results
+                rate_card_table = rate_card_df
+                log_selections()
+
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
         if userselection_brand == 'Urban Air Adventure Park':
@@ -232,6 +244,9 @@ def missing():
 
 def log_selections():
     print('logging results')
+    # Date Scooters Stopped having special pricing
+    scooters_end_date = datetime.datetime(2024, 5, 20)
+
     if userselection_bridge_loan=='Y':
         rate_card = RateCard(
             user=current_user.name,
@@ -259,7 +274,7 @@ def log_selections():
         db.session.commit()
         print('logged_successfully')
 
-    elif userselection_brand == 'Scooters':
+    elif userselection_brand == 'Scooters' and recommit =='Y' and selected_date < scooters_end_date and (today_date_time - selected_date).days < 120:
         rate_card = RateCard(
             user=current_user.name,
             calculated_date=datetime.datetime.today(),
@@ -314,12 +329,17 @@ def log_selections():
         print('logged_successfully')
 
     else:
+        if userselection_brand =='Scooters':
+            scooters = 'Y'
+        else:
+            scooters = 'N'
+
         rate_card = RateCard(
             user=current_user.name,
             calculated_date=datetime.datetime.today(),
             recommit=recommit,
             credit_officer_approval_date=selected_date,
-            scooters='N',
+            scooters=scooters,
             brand=userselection_brand,
             bawag=userselection_bawag_loan,
             bridge=userselection_bridge_loan,
@@ -344,7 +364,7 @@ def brand_fee_func():
     global brand_fee
     print('brand pricin')
     brand_fee_date_start = datetime.datetime(2024, 4, 28)
-    brand_fee_date_end = datetime.datetime(2024, 5, 19)
+    brand_fee_date_end = datetime.datetime(2024, 5, 20)
 
     if recommit == 'Y' and selected_date > brand_fee_date_start and selected_date < brand_fee_date_end:
         if userselection_pricing== 'Cash Flow' and userselection_brand == 'Fastsigns':
