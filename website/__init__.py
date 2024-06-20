@@ -19,7 +19,6 @@ def create_app():
     application.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=90)  # Set session to 1.5 hour
     application.config['UPLOAD_FOLDER']= '/Users/tyleryahnke/PycharmProjects/webapp/Test'
 
-
     #creating mail server
     application.config['MAIL_SERVER'] = 'email-smtp.us-east-1.amazonaws.com'
     application.config['MAIL_PORT'] = 587

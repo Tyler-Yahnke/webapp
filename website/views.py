@@ -216,7 +216,6 @@ def home():
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
 
-
     return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
 
 def missing():
