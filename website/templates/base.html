@@ -1,101 +1,184 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
+    <style>
+        body {
+            background-image: url('https://www.applepiecapital.com/assets/static/apple-path.jpg');
+            background-size: cover;
+            font-family: Helvetica;
+            font-size: 25px;
+            text-rendering: optimizeLegibility;
+        }
 
-    <style>body {
-    background-image: url('https://www.applepiecapital.com/assets/static/apple-path.jpg');
-    background-size: cover;
-    font-family: Helvetica;
-    font-size: 25px;
-    text-rendering: optimizeLegibility;
+        /* Basic styling for the chat button */
+        #openChatBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #008CBA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
 
+        /* Chat popup styling */
+        .chat-popup {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            border: 2px solid #008CBA;
+            border-radius: 10px;
+            background-color: white;
+            z-index: 1000;
+        }
 
-}</style>
+        .chat-container {
+            padding: 10px;
+        }
+
+        .chat-container h2 {
+            margin: 0;
+            padding-bottom: 10px;
+        }
+
+        #chatInput {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #sendBtn, #closeChatBtn {
+            background-color: #008CBA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+    </style>
 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link
-      rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
-      integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
-      crossorigin="anonymous"
+        rel="stylesheet"
+        href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+        integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+        crossorigin="anonymous"
     />
     <link
-      rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
-      crossorigin="anonymous"
+        rel="stylesheet"
+        href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+        crossorigin="anonymous"
     />
-
-      <link rel="icon" type="image/x-icon" href="https://www.applepiecapital.com/assets/favicon-563329767246515cb81ae9ced2c7567d7c15dffb209931acb8bdc9e37c13a36c.ico">
+    <link rel="icon" type="image/x-icon" href="https://www.applepiecapital.com/assets/favicon-563329767246515cb81ae9ced2c7567d7c15dffb209931acb8bdc9e37c13a36c.ico">
 
     <title>{% block title %}Home{% endblock %}</title>
-  </head>
-  <body>
+</head>
+<body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <button
-    class="navbar-toggler"
-    type="button"
-    data-toggle="collapse"
-    data-target="#navbar"
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-toggle="collapse"
+            data-target="#navbar"
+        >
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbar">
+            <div class="navbar-nav mr-auto">
+                {% if user.is_authenticated %}
+                <a class="nav-item nav-link" id="home" href="/RateCard">Rate Card</a>
+                <a class="nav-item nav-link" id="fees" href="/Fees">Fees</a>
+                <a class="nav-item nav-link" id="cm_validation" href="/CreditMemoValidation">Credit Memo Validation</a>
+                <a class="nav-item nav-link" id="doc_generator" href="/DocGenerator">Document Generator</a>
+                <a class="nav-item nav-link" id="logout" href="/logout">Logout</a>
+                {% else %}
+                <a class="nav-item nav-link" id="login" href="/">Login</a>
+                <a class="nav-item nav-link" id="first_time_user" href="/password_reset">First Time User</a>
+                <a class="nav-item nav-link" id="password_reset" href="/password_reset">Password Reset</a>
+                {% endif %}
+            </div>
+            <!-- Add the logo image here -->
+            <img src="https://www.applepiecapital.com/assets/shared/apc-logo-d281517331a17f3360d6967377e11a0c46b684fcb4ee343b9fc3eb595d2dfcc1.png" alt="Logo" class="navbar-brand">
+        </div>
+    </nav>
 
-  >
-    <span class="navbar-toggler-icon"></span>
-  </button>
-    <div class="collapse navbar-collapse" id="navbar">
-      <div class="navbar-nav mr-auto">
-        {% if user.is_authenticated %}
-        <a class="nav-item nav-link" id="home" href="/RateCard">Rate Card</a>
-          <a class="nav-item nav-link" id="fees" href="/Fees">Fees</a>
-          <a class="nav-item nav-link" id="cm_validation" href="/CreditMemoValidation">Credit Memo Validation</a>
-          <a class="nav-item nav-link" id="doc_generator" href="/DocGenerator">Document Generator</a>
-        <a class="nav-item nav-link" id="logout" href="/logout">Logout</a>
-        {% else %}
-          <a class="nav-item nav-link" id="login" href="/">Login</a>
-          <a class="nav-item nav-link" id="first_time_user" href="/password_reset">First Time User</a>
-          <a class="nav-item nav-link" id="password_reset" href="/password_reset">Password Reset</a>
-
-        {% endif %}
-      </div>
-      <!-- Add the logo image here -->
-      <img src="https://www.applepiecapital.com/assets/shared/apc-logo-d281517331a17f3360d6967377e11a0c46b684fcb4ee343b9fc3eb595d2dfcc1.png" alt="Logo" class="navbar-brand">
-    </div>
-</nav>
-
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if
-    messages %} {% for category, message in messages %} {% if category ==
-    'error' %}
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %} {% for category, message in messages %} {% if category == 'error' %}
     <div class="alert alert-danger alter-dismissable fade show" role="alert">
-      {{ message }}
-      <button type="button" class="close" data-dismiss="alert">
-        <span aria-hidden="true">&times;</span>
-      </button>
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert">
+            <span aria-hidden="true">&times;</span>
+        </button>
     </div>
     {% else %}
     <div class="alert alert-success alter-dismissable fade show" role="alert">
-      {{ message }}
-      <button type="button" class="close" data-dismiss="alert">
-        <span aria-hidden="true">&times;</span>
-      </button>
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert">
+            <span aria-hidden="true">&times;</span>
+        </button>
     </div>
     {% endif %} {% endfor %} {% endif %} {% endwith %}
 
     <div class="container">{% block content %} {% endblock %}</div>
-    <script
-      src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-      integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
-      integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
-      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-      crossorigin="anonymous"
-    ></script>
 
+    <!-- Chat button -->
+    <button id="openChatBtn">Submit Feedback</button>
 
-  </body>
+    <!-- Chat popup -->
+    <div id="chatPopup" class="chat-popup">
+        <div class="chat-container">
+            <h2>Feedback Request</h2>
+            <textarea id="chatInput" placeholder="Submit feedback, system errors or enhancement ideas related to the tool"></textarea>
+            <button id="sendBtn">Send</button>
+            <button id="closeChatBtn">Close</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+    <script>
+document.getElementById('openChatBtn').addEventListener('click', function() {
+    document.getElementById('chatPopup').style.display = 'block';
+});
+
+document.getElementById('closeChatBtn').addEventListener('click', function() {
+    document.getElementById('chatPopup').style.display = 'none';
+});
+
+document.getElementById('sendBtn').addEventListener('click', function() {
+    var message = document.getElementById('chatInput').value;
+    if (message.trim() !== "") {
+        fetch('/send_feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: message })
+        }).then(response => {
+            if (response.ok) {
+                alert("Message sent successfully!");
+                document.getElementById('chatInput').value = ""; // Clear the input
+                document.getElementById('chatPopup').style.display = 'none';
+            } else {
+                alert("Failed to send message.");
+            }
+        }).catch(error => {
+            alert("Error: " + error);
+        });
+    } else {
+        alert("Please type a message before sending.");
+    }
+});
+    </script>
+</body>
 </html>

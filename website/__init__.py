@@ -1,7 +1,7 @@
-from flask import Flask, session, redirect, url_for, request
+from flask import Flask, session, redirect, url_for, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
-from flask_mail import Mail
+from flask_mail import Mail, Message
 from flask_apscheduler import APScheduler
 from pytz import timezone
 from datetime import timedelta, datetime
@@ -46,6 +46,25 @@ def create_app():
         if current_user.is_authenticated:
             current_user.last_activity = datetime.now()
             db.session.commit()
+
+    #logic to send feedback to me
+    @application.route('/send_feedback', methods=['POST'])
+    def send_feedback():
+        data = request.get_json()
+        message = data.get('message')
+
+        if message and current_user.is_authenticated:
+            try:
+                msg = Message("Feedback from Chat Box",
+                              sender="passwordreset@apcratecard.com",
+                              recipients=["tyler.yahnke@applepiecapital.com"])
+                msg.body = f"User: {current_user.name}\n\nMessage: {message}"
+                mail.send(msg)
+                return jsonify({"success": True}), 200
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+        else:
+            return jsonify({"error": "No message provided or user not authenticated"}), 400
 
 
     from .views import views

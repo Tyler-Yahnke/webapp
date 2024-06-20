@@ -176,6 +176,7 @@ def home():
 
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
+        #this can be removed Oct 8th or after LAI 25585 is completed
         if userselection_brand == 'Urban Air Adventure Park':
             urban_func()
             results = urban_results
@@ -412,7 +413,9 @@ def urban_func():
     global urban_results
 
     urban_results = {}
-
+    urban_air_end_date = datetime.datetime(2024, 6, 20)
+    print(urban_air_end_date)
+    print(selected_date)
 
     if recommit == "Y" and userselection_bawag_loan =='N' and (today_date_time - selected_date).days < 120:
         # Selecting rate card
@@ -430,7 +433,7 @@ def urban_func():
         # setting pricing variable
         pricing = userselection_pricing
 
-    elif recommit == "Y" and userselection_bawag_loan == 'Y' and (today_date_time - selected_date).days < 120:
+    elif recommit == "Y" and userselection_bawag_loan == 'Y' and (today_date_time - selected_date).days < 120 and urban_air_end_date > selected_date:
         # Selecting rate card
         selected_spread = Spreads.query.filter(
             and_(
@@ -465,14 +468,14 @@ def urban_func():
         selected_spread = Spreads.query.filter(
             and_(Spreads.Start <= today, Spreads.End >= today,
                  Spreads.APCGrade == userselection_grade,
-                 Spreads.PricingBasis == 'Pro Forma',
+                 Spreads.PricingBasis == Spreads.PricingBasis == userselection_pricing,
                  Spreads.RateType == userselection_ratetype
                  )
         ).first()
         temp_base_spread = getattr(selected_spread, userselection_term)
 
         # setting pricing variable
-        pricing = 'Pro Forma'
+        pricing = userselection_pricing
 
     # selecting the embedded fee
     selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()
