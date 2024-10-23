@@ -71,19 +71,20 @@ def credit_memo_validation():
 
 
         #matching logic
+        ##Stopped checking breakdown of ownership, personal guarantor, corp guarantor and address based on feedback from Sean
         brand_category_partner()
-        breakdown_of_ownership()
+        #breakdown_of_ownership()
         borrowing_entity()
-        personal_guarantors()
-        corporate_guarantors()
+        #personal_guarantors()
+        #corporate_guarantors()
         credit_exception()
         global_exposure()
-        address_of_subject_unit()
+        #address_of_subject_unit()
         down_payment()
         loan_terms()
         interest_rate()
         investment_grade()
-        fico_results()
+        #fico_results()
         important_ratios()
         acr_pcv_pcr()
         liquidity()
@@ -266,7 +267,9 @@ acct.name "franchisor.name",
 CASE WHEN (acct.Brand_Label__c IN ('Fully Integrated Partner', 'Partner')) THEN 'Partner' ELSE 'Non-Partner' END AS "brand_status",
  b.whole_loan_purchaser, 
  b.projected_whole_loan_purchaser, 
- b.investor_approved
+ b.investor_approved,
+ b.financed_ti_allowance,
+b.y2_fixed_charge_coverage_months
 from loans b 
 left join 
     guarantor_ownerships go ON  b.id = go.loan_id
@@ -722,13 +725,13 @@ def down_payment():
             }
 
         try:
-            if float(down_payment_percent_doc) != int(matching_df['loans.down_payment_percent'].iloc[0]):
+
+            if round(float(down_payment_percent_doc)) != int(round(matching_df['loans.down_payment_percent'].iloc[0])):
                 potential_discrepancy['Down Payment %'] = {
                     'document_value': down_payment_percent_doc,
                     'dataframe_value': int(matching_df['loans.down_payment_percent'].iloc[0])
                 }
         except Exception as e:
-
             potential_discrepancy['Down Payment %'] = {
                 'document_value': "",
                 'dataframe_value': matching_df['loans.down_payment_percent'].iloc[0]
@@ -834,7 +837,7 @@ def interest_rate():
 
     try:
         interest_rate_doc = re.search(interest_rate_pattern, content['Interest Rate']).group(1)
-        if interest_rate_doc != str(platform_df['approved_rate_in_commit_letter'].iloc[0]):
+        if float(interest_rate_doc) != float(platform_df['approved_rate_in_commit_letter'].iloc[0]):
             potential_discrepancy['Interest Rate'] = {
                 'document_value': interest_rate_doc,
                 'dataframe_value': platform_df['approved_rate_in_commit_letter'].iloc[0]
@@ -852,7 +855,7 @@ def interest_rate():
         not_located.append('Interest Rate (Pricing Basis)')
     try:
         spread_doc = re.search(spread_pattern, content['Interest Rate']).group(1).replace("%", "")
-        if spread_doc != str(matching_df['loans.commitment_letter_spread_rate'].iloc[0]):
+        if float(spread_doc) != float(matching_df['loans.commitment_letter_spread_rate'].iloc[0]):
             potential_discrepancy['Interest Rate (Spread Rate)'] = {
                 'document_value': spread_doc,
                 'dataframe_value': matching_df['loans.commitment_letter_spread_rate'].iloc[0]
@@ -889,7 +892,7 @@ def important_ratios():
     else:
         try:
             projected_gdscr_doc = re.search(projected_gdscr, content['Important Ratios']).group(1)
-            if str(projected_gdscr_doc) != str(matching_df['loans.global_dscr'].iloc[0]):
+            if float(projected_gdscr_doc) != float(matching_df['loans.global_dscr'].iloc[0]):
                 potential_discrepancy['Important Ratios(GDSCR)'] = {
                     'document_value': projected_gdscr_doc,
                     'dataframe_value': matching_df['loans.global_dscr'].iloc[0]
@@ -898,7 +901,7 @@ def important_ratios():
             not_located.append('Important Ratios(GDSCR)')
         try:
             projected_dscr_doc = re.search(projected_dscr, content['Important Ratios']).group(1)
-            if str(projected_dscr_doc) != str(matching_df['loans.dscr_y2_dcr'].iloc[0]):
+            if float(projected_dscr_doc) != float(matching_df['loans.dscr_y2_dcr'].iloc[0]):
                 potential_discrepancy['Important Ratios(DSCR)'] = {
                     'document_value': projected_dscr_doc,
                     'dataframe_value': matching_df['loans.dscr_y2_dcr'].iloc[0]
@@ -907,7 +910,7 @@ def important_ratios():
             not_located.append('Important Ratios(DSCR)')
         try:
             projected_fccr_doc = re.search(projected_fccr, content['Important Ratios']).group(1)
-            if str(projected_fccr_doc) != str(matching_df['loans.y2_fixed_charge_coverage_ratio'].iloc[0]):
+            if float(projected_fccr_doc) != float(matching_df['loans.y2_fixed_charge_coverage_ratio'].iloc[0]):
                 potential_discrepancy['Important Ratios(FCCR)'] = {
                     'document_value': projected_fccr_doc,
                     'dataframe_value': matching_df['loans.y2_fixed_charge_coverage_ratio'].iloc[0]
@@ -916,7 +919,7 @@ def important_ratios():
             not_located.append('Important Ratios(FCCR)')
         try:
             projected_debt_to_ebitda_doc = re.search(projected_debt_to_ebitda, content['Important Ratios']).group(1)
-            if str(projected_debt_to_ebitda_doc) != str(matching_df['loans.debt_to_ebitda'].iloc[0]):
+            if float(projected_debt_to_ebitda_doc) != float(matching_df['loans.debt_to_ebitda'].iloc[0]):
                 potential_discrepancy['Important Ratios(Debt-EBITDA)'] = {
                     'document_value': projected_debt_to_ebitda_doc,
                     'dataframe_value': matching_df['loans.debt_to_ebitda'].iloc[0]
@@ -926,13 +929,15 @@ def important_ratios():
         try:
             projected_lease_adjusted_debt_to_ebitda_doc = re.search(projected_lease_adjusted_debt_to_ebitda,
                                                                     content['Important Ratios']).group(1)
-
-            if str(projected_lease_adjusted_debt_to_ebitda_doc) != str(
-                    matching_df['net_rent_adjusted_debt_to_ebitdar_1'].iloc[0]):
-                potential_discrepancy['Important Ratios(Projected Lease-Adjusted Debt-to EBITDAR)'] = {
-                    'document_value': projected_lease_adjusted_debt_to_ebitda_doc,
-                    'dataframe_value': matching_df['net_rent_adjusted_debt_to_ebitdar_1'].iloc[0]
-                }
+            if float(platform_df['financed_ti_allowance'].iloc[0]) > 0:
+                if float(projected_lease_adjusted_debt_to_ebitda_doc) != float(
+                        matching_df['net_rent_adjusted_debt_to_ebitdar_1'].iloc[0]):
+                    potential_discrepancy['Important Ratios(Projected Lease-Adjusted Debt-to EBITDAR)'] = {
+                        'document_value': projected_lease_adjusted_debt_to_ebitda_doc,
+                        'dataframe_value': matching_df['net_rent_adjusted_debt_to_ebitdar_1'].iloc[0]
+                    }
+            else:
+                pass
         except Exception as e:
             not_located.append('Important Ratios(Projected Lease-Adjusted Debt-to EBITDAR)')
 
@@ -1044,6 +1049,7 @@ def liquidity():
     global potential_discrepancy, not_located
 
     pattern = r'\$([0-9,]+)'
+    pattern_capital = r'working capital coverage ratio (\d+)'
 
     try:
         # Find all matches in the text
@@ -1052,22 +1058,40 @@ def liquidity():
         total_liquidity_required = int(matches[0].replace(',', ''))
         post_down_liquidity = int(matches[1].replace(',', ''))
 
+
+
         if total_liquidity_required != int(platform_df['liquidity_required_6_month_expenses'].iloc[0]):
-            potential_discrepancy['Liquidty'] = {
+            potential_discrepancy['Liquidity'] = {
                 'document_value': total_liquidity_required,
                 'dataframe_value': int(platform_df['liquidity_required_6_month_expenses'].iloc[0])
             }
     except Exception as e:
-        not_located.append('Liquidty')
+        not_located.append('Liquidity')
 
     try:
         if post_down_liquidity != int(platform_df['post_down_liquidity'].iloc[0]):
-            potential_discrepancy['Liquidty'] = {
+            potential_discrepancy['Liquidity'] = {
                 'document_value': post_down_liquidity,
                 'dataframe_value': int(platform_df['post_down_liquidity'].iloc[0])
             }
     except Exception as e:
-        not_located.append('Liquidty')
+        not_located.append('Liquidity')
+
+
+    try:
+        # Find all matches in the text
+        matches_capital = re.findall(pattern_capital, content['Liquidity'])
+
+        capital_coverage_ratio = int(matches_capital[0].replace(',', ''))
+
+        if capital_coverage_ratio != int(platform_df['y2_fixed_charge_coverage_months'].iloc[0]):
+            print('test')
+            potential_discrepancy['Liquidity - Capital coverage Ratio'] = {
+                'document_value': capital_coverage_ratio,
+                'dataframe_value': int(platform_df['y2_fixed_charge_coverage_months'].iloc[0])
+            }
+    except Exception as e:
+        not_located.append('Liquidity - Capital Cover Ratio')
 
     return potential_discrepancy, not_located
 

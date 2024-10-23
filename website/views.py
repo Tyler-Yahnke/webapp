@@ -16,7 +16,7 @@ views = Blueprint('views', __name__)
 @views.route('/', methods=['GET', 'POST'])
 @login_required
 def home():
-    global brand_fee, today_date_time, recommit, today, rate_card_index, prime_rate, swap_rate, userselection_brand, userselection_term_missing, userselection_bawag_loan, userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date, down_payment_fee_dict
+    global today_date_time, recommit, today, rate_card_index, prime_rate, swap_rate, userselection_brand, userselection_term_missing, userselection_bawag_loan, userselection_bridge_loan,userselection_ratetype,userselection_term, userselection_fee,userselection_pricing, userselection_grade, userselection_dp, selected_date, down_payment_fee_dict
 
 
 
@@ -127,6 +127,7 @@ def home():
             # Handle the case when no date is selected. Set selected_date to today's date
             selected_date = datetime.datetime.today().date()
 
+
         #Pulling most recent spread to ensure it has been updated
         selected_spread = Spreads.query.filter(
             and_(
@@ -137,20 +138,19 @@ def home():
                 Spreads.RateType == userselection_ratetype
             )
         ).order_by(Spreads.End.desc()).first()
-        most_recent_end_date = selected_spread.End
+
+        try:
+            most_recent_end_date = selected_spread.End
 
 
-
-        if most_recent_end_date < today:
-            flash('Spread Rates have not been updated. Please notify Tyler Yahnke and Joel Fuentes', category='error')
+        except:
+            flash('Spread Rates have not been updated. Please notify Tyler Yahnke', category='error')
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,
                                    previous_data=previous_data)
 
         if recommit == 'Y' and selected_date > today_date_time:
             flash('Can\'t select a future date', category='error')
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table,previous_data=previous_data)
-
-        brand_fee_func()
 
         if userselection_bridge_loan == 'Y':
             bridge_loan_func()
@@ -174,13 +174,6 @@ def home():
                 rate_card_table = rate_card_df
                 log_selections()
 
-            return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
-
-        #this can be removed Oct 8th or after LAI 25585 is completed
-        if userselection_brand == 'Urban Air Adventure Park':
-            urban_func()
-            results = urban_results
-            log_selections()
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
 
@@ -301,33 +294,6 @@ def log_selections():
         db.session.commit()
         print('logged_successfully')
 
-    elif userselection_brand == 'Urban Air Adventure Park':
-        rate_card = RateCard(
-            user=current_user.name,
-            calculated_date=datetime.datetime.today(),
-            recommit=recommit,
-            credit_officer_approval_date=selected_date,
-            scooters='N',
-            brand=userselection_brand,
-            bawag=userselection_bawag_loan,
-            bridge=userselection_bridge_loan,
-            rate_type=userselection_ratetype ,
-            term=userselection_term,
-            embedded_fee=userselection_fee ,
-            investment_grade = userselection_grade,
-            pricing_basis=userselection_pricing ,
-            down_payment = userselection_dp,
-            interest_rate = urban_results['final_rate'].strip('%'),
-            spread_rate = urban_results['spread_rate'].strip('%'),
-            index_rate = urban_results['index_rate'].strip('%'),
-            down_payment_penalty=urban_results['loan_buyer_dp'].strip('%'),
-            brand_penalty=urban_results['loan_buyer_brand_fee'].strip('%'),
-            embedded_fee_penalty = urban_results['loan_buyer_fee'].strip('%')
-        )
-        db.session.add(rate_card)
-        db.session.commit()
-        print('logged_successfully')
-
     else:
         if userselection_brand =='Scooters':
             scooters = 'Y'
@@ -360,39 +326,6 @@ def log_selections():
         db.session.commit()
         print('logged_successfully')
 
-def brand_fee_func():
-    global brand_fee
-    print('brand pricin')
-    brand_fee_date_start = datetime.datetime(2024, 4, 28)
-    brand_fee_date_end = datetime.datetime(2024, 5, 20)
-
-    if recommit == 'Y' and selected_date > brand_fee_date_start and selected_date < brand_fee_date_end:
-        if userselection_pricing== 'Cash Flow' and userselection_brand == 'Fastsigns':
-            brand_fee = '-0.50'
-        elif userselection_pricing== 'Pro Forma' and userselection_brand in ('Camp Bow Wow','My Salon Suite','Phenix','Salons by JC','Sola Salons','Gold Fish Swim School'):
-            brand_fee = '-0.50'
-        else:
-            brand_fee = '0.00'
-    elif recommit == 'Y' and (today_date_time - selected_date).days > 120 and selected_date < brand_fee_date_end:
-        if userselection_pricing == 'Cash Flow' and userselection_brand == 'Fastsigns':
-            brand_fee = '-0.50'
-        elif userselection_pricing == 'Pro Forma' and userselection_brand in ('Camp Bow Wow', 'My Salon Suite', 'Phenix', 'Salons by JC', 'Sola Salons', 'Gold Fish Swim School'):
-            brand_fee = '-0.50'
-        else:
-            brand_fee = '0.00'
-
-    elif recommit != 'Y' and today_date_time > brand_fee_date_start and today_date_time < brand_fee_date_end:
-        if userselection_pricing == 'Cash Flow' and userselection_brand == 'Fastsigns':
-            brand_fee = '-0.50'
-        elif userselection_pricing == 'Pro Forma' and userselection_brand in ('Camp Bow Wow', 'My Salon Suite', 'Phenix', 'Salons by JC', 'Sola Salons', 'Gold Fish Swim School'):
-            brand_fee = '-0.50'
-        else:
-            brand_fee = '0.00'
-    else:
-        brand_fee = '0.00'
-
-    return (brand_fee)
-
 def bridge_loan_func():
     global bridge_results
 
@@ -403,107 +336,9 @@ def bridge_loan_func():
     'spread_rate': '3.50%',
     'index_rate': f"{prime_rate.Rate}%",
     'index_rate_date': prime_rate.Date.strftime('%m/%d/%Y'),
-    'loan_buyer_brand_fee': f"0.00%",
+    'loan_buyer_brand_fee': "0.00%",
     'rate_type': 'Fixed'}
     return(bridge_results)
-
-def urban_func():
-    print('Urban Pricing')
-    global urban_results
-
-    urban_results = {}
-    urban_air_end_date = datetime.datetime(2024, 6, 20)
-    print(urban_air_end_date)
-    print(selected_date)
-
-    if recommit == "Y" and userselection_bawag_loan =='N' and (today_date_time - selected_date).days < 120:
-        # Selecting rate card
-        selected_spread = Spreads.query.filter(
-            and_(
-                Spreads.Start <= selected_date,
-                Spreads.End >= selected_date,
-                Spreads.APCGrade == userselection_grade,
-                Spreads.PricingBasis == userselection_pricing,
-                Spreads.RateType == userselection_ratetype
-            )
-        ).first()
-        temp_base_spread = getattr(selected_spread, userselection_term)
-
-        # setting pricing variable
-        pricing = userselection_pricing
-
-    elif recommit == "Y" and userselection_bawag_loan == 'Y' and (today_date_time - selected_date).days < 120 and urban_air_end_date > selected_date:
-        # Selecting rate card
-        selected_spread = Spreads.query.filter(
-            and_(
-                Spreads.Start <= selected_date,
-                Spreads.End >= selected_date,
-                Spreads.APCGrade == userselection_grade,
-                Spreads.PricingBasis == 'Pro Forma',
-                Spreads.RateType == userselection_ratetype
-            )
-        ).first()
-        temp_base_spread = getattr(selected_spread, userselection_term)
-
-        # setting pricing variable
-        pricing = 'Pro Forma'
-
-    elif userselection_bawag_loan == 'N':
-        # Selecting rate card
-        selected_spread = Spreads.query.filter(
-            and_(Spreads.Start <= today, Spreads.End >= today,
-                 Spreads.APCGrade == userselection_grade,
-                 Spreads.PricingBasis == userselection_pricing,
-                 Spreads.RateType == userselection_ratetype
-                 )
-        ).first()
-        temp_base_spread = getattr(selected_spread, userselection_term)
-
-        # setting pricing variable
-        pricing = userselection_pricing
-
-    else:
-        # Selecting rate card
-        selected_spread = Spreads.query.filter(
-            and_(Spreads.Start <= today, Spreads.End >= today,
-                 Spreads.APCGrade == userselection_grade,
-                 Spreads.PricingBasis == Spreads.PricingBasis == userselection_pricing,
-                 Spreads.RateType == userselection_ratetype
-                 )
-        ).first()
-        temp_base_spread = getattr(selected_spread, userselection_term)
-
-        # setting pricing variable
-        pricing = userselection_pricing
-
-    # selecting the embedded fee
-    selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()
-    temp_embedded = getattr(selected_fee, userselection_term)
-
-    # base spread
-    base_spread = round(
-        float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp]) + float(
-            brand_fee), 4)
-
-    # final interest rate
-    final_spread = round(base_spread + float(swap_rate), 4)
-
-
-    # return results
-    urban_results = {
-        'index_rate_used': "Swap - 3 Year",
-        'rate_card_used': pricing,
-        'final_rate': f"{final_spread: .2f}%",
-        'spread_rate': f"{base_spread: .2f}%",
-        'index_rate': f"{swap_rate}%",
-        'index_rate_date': SwapRate.query.order_by(desc(SwapRate.Date)).first().Date.strftime('%m/%d/%Y'),
-        'rate_type': 'Fixed',
-        'loan_buyer_spread': f"{temp_base_spread: .2f}%",
-        'loan_buyer_fee': f"{temp_embedded}%",
-        'loan_buyer_dp': f"{down_payment_fee_dict[userselection_dp]: .2f}%",
-        'loan_buyer_brand_fee': f"{brand_fee}%"
-    }
-    return (urban_results)
 
 def scooters_func():
     global scooters_results
@@ -556,7 +391,7 @@ def scooters_func():
         'rate_type': 'Fixed',
         'loan_buyer_spread': f"{temp_base_spread: .2f}%",
         'loan_buyer_fee': f"{temp_embedded}%",
-        'loan_buyer_brand_fee': f"{brand_fee}%"
+        'loan_buyer_brand_fee': "0.00%"
     }
     return (scooters_results)
 
@@ -596,7 +431,7 @@ def current_credit_policy():
 
     # base spread
     base_spread = round(
-        float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp]) + float(brand_fee), 4)
+        float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp]), 4)
 
 
     # final interest rate
@@ -614,7 +449,7 @@ def current_credit_policy():
         'loan_buyer_spread': f"{temp_base_spread: .2f}%",
         'loan_buyer_fee': f"{temp_embedded}%",
         'loan_buyer_dp': f"{down_payment_fee_dict[userselection_dp]: .2f}%",
-        'loan_buyer_brand_fee': f"{brand_fee}%"
+        'loan_buyer_brand_fee': "0.00%"
     }
     return (current_credit_policy_results)
 
@@ -657,7 +492,7 @@ def rate_card():
             temp_embedded_table = getattr(selected_fee_table, attr)
 
             temp_val = round(
-                float(column) + float(temp_embedded_table) + float(down_payment_fee_dict[userselection_dp]) + float(brand_fee), 4)
+                float(column) + float(temp_embedded_table) + float(down_payment_fee_dict[userselection_dp]), 4)
 
             temp_final = round((temp_val + float(rate_card_index)), 2)
 
