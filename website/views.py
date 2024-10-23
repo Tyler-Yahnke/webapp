@@ -328,7 +328,7 @@ def log_selections():
 
 def bridge_loan_func():
     global bridge_results
-
+    print('bridge_process')
     bridge_results = {
     'index_rate_used': 'Prime',
     'rate_card_used': 'Pro Forma',

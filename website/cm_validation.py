@@ -1085,7 +1085,6 @@ def liquidity():
         capital_coverage_ratio = int(matches_capital[0].replace(',', ''))
 
         if capital_coverage_ratio != int(platform_df['y2_fixed_charge_coverage_months'].iloc[0]):
-            print('test')
             potential_discrepancy['Liquidity - Capital coverage Ratio'] = {
                 'document_value': capital_coverage_ratio,
                 'dataframe_value': int(platform_df['y2_fixed_charge_coverage_months'].iloc[0])
