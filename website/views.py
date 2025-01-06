@@ -128,19 +128,19 @@ def home():
             selected_date = datetime.datetime.today().date()
 
 
-        #Pulling most recent spread to ensure it has been updated
-        selected_spread = Spreads.query.filter(
-            and_(
-                Spreads.Start <= today,
-                Spreads.End >= today,
-                Spreads.APCGrade == userselection_grade,
-                Spreads.PricingBasis == userselection_pricing,
-                Spreads.RateType == userselection_ratetype
-            )
-        ).order_by(Spreads.End.desc()).first()
+
 
         try:
-            most_recent_end_date = selected_spread.End
+            # Pulling most recent spread to ensure it has been updated
+            selected_spread = Spreads.query.filter(
+                and_(
+                    Spreads.Start <= today,
+                    Spreads.End >= today,
+                    Spreads.APCGrade == userselection_grade,
+                    Spreads.PricingBasis == userselection_pricing,
+                    Spreads.RateType == userselection_ratetype
+                )
+            ).order_by(Spreads.End.desc()).first()
 
 
         except:
