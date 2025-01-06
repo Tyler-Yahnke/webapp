@@ -60,7 +60,6 @@ class Spreads(db.Model):
     End = db.Column(db.String(45))
     RateType = db.Column(db.String(45))
 
-
 class CMValidation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.String(45))

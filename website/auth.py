@@ -8,7 +8,6 @@ from flask_mail import Message
 from datetime import datetime
 
 
-
 auth = Blueprint('auth', __name__)
 
 @auth.route('/', methods=['GET', 'POST'])

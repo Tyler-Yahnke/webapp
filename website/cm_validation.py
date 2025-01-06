@@ -16,7 +16,6 @@ import tempfile
 
 cm_validation = Blueprint('cm_validation', __name__)
 
-
 @cm_validation.route('/', methods=['GET', 'POST'])
 @login_required
 def credit_memo_validation():

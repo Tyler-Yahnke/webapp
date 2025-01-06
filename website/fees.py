@@ -18,4 +18,3 @@ def fees_func():
     return render_template("fees_tab.html", user=current_user, discount_table=discount_table)
 
 
-

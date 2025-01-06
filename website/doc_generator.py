@@ -12,6 +12,7 @@ import zipfile
 
 doc_generator = Blueprint('doc_generator', __name__)
 
+
 @doc_generator.route('/', methods=['GET', 'POST'])
 @login_required
 def doc_generation():

@@ -32,7 +32,6 @@ def index_rate_updates():
     prev_Biz_Day = date.today() - BDay(1)
     formatted_dt = prev_Biz_Day.strftime('%Y-%m-%d')
 
-
     if row and str(row['Date']) != formatted_dt:
         print('index updates begin')
         url = "https://ondemand.websol.barchart.com/getQuote.json?apikey=f662dbbcc2a45be5307136cb8e74da08&symbols=SOFWAPY3.RT, SOFWAPY5.RT, WSJPRIME.RT"

@@ -129,7 +129,6 @@ def home():
 
 
 
-
         try:
             # Pulling most recent spread to ensure it has been updated
             selected_spread = Spreads.query.filter(

@@ -81,7 +81,6 @@ def create_app():
     from .models import User
     from .index_pull import index_rate_updates, index_rate_verification
 
-
     login_manager = LoginManager()
     login_manager.login_view = 'auth.login'
     login_manager.init_app(application)
