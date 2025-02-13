@@ -1,0 +1,201 @@
+{% extends "base.html" %} {% block title %}APR Calculator{% endblock %} {% block content%}
+
+<!DOCTYPE html>
+<head>
+    <title>APR Calculator</title>
+    <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+    <style>
+        .modern-heading {
+            text-align: center;
+            font-family: 'Raleway', sans-serif;
+            font-size: 48px;
+            color: #7dbb5a;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #7dbb5a;
+            padding-bottom: 10px;
+            margin-bottom: 5px;
+        }
+
+        .section-heading {
+            text-align: left;
+            font-family: 'Raleway', sans-serif;
+            font-size: 30px;
+            color: #155724;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #7dbb5a;
+            padding-bottom: 10px;
+            margin-bottom: 5px;
+        }
+
+
+
+        .form-container{
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            background-color: rgba(200, 200, 200, 0.8);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+
+        .form-container-buttons {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 10px;
+        background-color: rgba(200, 200, 200, 0.8);
+        border-radius: 10px;
+        padding: 10px;
+        }
+
+        .footer {
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+        }
+               .container-margin-bottom {
+            margin-bottom: 100px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #d4edda; /* Background color */
+            color: #155724; /* Text color */
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #d4edda;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            z-index: 9999; /* Ensure the popup appears above other elements */
+        }
+        .spinner {
+            display: block;
+            margin: 0 auto;
+            width: 150px; /* Adjust the size of the spinner as needed */
+            height: 150px;
+            background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZGc5cDFyYmt2d3lnNGRuNzRyNGtvZ2U1YmJwcjRmbndqNTRzOHI5MSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IJNQqqtwmYZHdkdGZM/giphy.gif'); /* Replace 'path/to/spinner.gif' with the path to your spinner image */
+            background-size: cover;
+
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .popup-text {
+            text-align: center;
+            margin-top: 10px;
+            font-family: 'Raleway', sans-serif;
+            font-size: 25px;
+            color: #155724; /* Adjust the color as needed */
+        }
+    </style>
+</head>
+
+<link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+
+<body>
+    <h1 class="modern-heading">APR Calculator</h1>
+
+
+ <div class="form-container">
+    <div class="form-inputs">
+      <form method="POST">
+
+
+<label for="lai"><b>Calculate APR for Specific Funded Loan</b></label>
+          <br>
+          <label>LAI-</label>
+<input type="text" id="lai" name="lai" value="{{ previous_data.lai if previous_data.lai != '' else '' }}">
+
+ <br>
+ <br>
+
+<label><b>Calculate APR for a Group of Funded Loans</b></label>
+<br>
+<label>State:</label>
+           <br>
+<select name="state" id="state">
+    <option value="Select State" {% if previous_data.state == 'Select State' %}selected{% endif %}>Select State</option>
+    <option value="CA" {% if previous_data.state == 'CA' %}selected{% endif %}>CA</option>
+    <option value="NY" {% if previous_data.state == 'NY' %}selected{% endif %}>NY</option>
+</select>
+<br>
+
+
+<br>
+<label>Date Range</label>
+<br>
+<label for="start_date">Start Date:</label>
+<input type="date" id="start_date" name="start_date"
+       value="{{ previous_data.start_date if previous_data.start_date != '' else '' }}">
+<br>
+
+<label for="end_date">End Date:</label>
+<input type="date" id="end_date" name="end_date"
+       value="{{ previous_data.end_date if previous_data.end_date != '' else '' }}">
+
+
+<br>
+<br>
+        <input type="submit" class="btn btn-primary" name='submit' value="Submit" onclick="submitForm()" style="font-size: 20px;">
+
+            <input type="submit" class="btn btn-primary" name="download" value="Download File" style="font-size: 20px;">
+
+      </form>
+
+
+    </div>
+
+     <div class="form-ratecard">
+  <h2>Results</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>LAI</th>
+        <th>APR</th>
+          <th>Borrower State</th>
+          <th>Funded Date</th>
+          <th>Net Loan Amount</th>
+
+      </tr>
+    </thead>
+    <tbody>
+{% for index, row in apr_table.iterrows() %}
+      <tr>
+        <td>{{ row['lai'] }}</td>
+        <td>{{ row['apr'] }}</td>
+        <td>{{ row['borrower_state'] }}</td>
+        <td>{{ row['funded_date'] }}</td>
+        <td>{{ row['net_loan_amount'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+</body>
+
+</html>
+
+{% endblock %}

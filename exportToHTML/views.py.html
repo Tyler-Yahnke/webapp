@@ -1,0 +1,482 @@
+<html>
+<head>
+<title>views.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cc7832;}
+.s1 { color: #a9b7c6;}
+.s2 { color: #6a8759;}
+.s3 { color: #6897bb;}
+.s4 { color: #808080;}
+</style>
+</head>
+<body bgcolor="#2b2b2b">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+views.py</font>
+</center></td></tr></table>
+<pre><span class="s0">from </span><span class="s1">flask </span><span class="s0">import </span><span class="s1">Blueprint</span><span class="s0">, </span><span class="s1">render_template</span><span class="s0">, </span><span class="s1">request</span><span class="s0">, </span><span class="s1">flash</span><span class="s0">, </span><span class="s1">jsonify</span>
+<span class="s0">from </span><span class="s1">flask_login </span><span class="s0">import </span><span class="s1">login_required</span><span class="s0">, </span><span class="s1">current_user</span>
+<span class="s0">import </span><span class="s1">datetime</span>
+<span class="s0">from </span><span class="s1">pandas.tseries.offsets </span><span class="s0">import </span><span class="s1">BDay</span>
+<span class="s0">import </span><span class="s1">requests</span>
+<span class="s0">from </span><span class="s1">.models </span><span class="s0">import </span><span class="s1">SwapRate</span><span class="s0">, </span><span class="s1">PrimeRate</span><span class="s0">, </span><span class="s1">Spreads</span><span class="s0">, </span><span class="s1">EmbeddedFee</span><span class="s0">, </span><span class="s1">RateCard</span>
+<span class="s0">from </span><span class="s1">sqlalchemy </span><span class="s0">import </span><span class="s1">desc</span><span class="s0">, </span><span class="s1">and_</span>
+<span class="s0">import </span><span class="s1">pandas </span><span class="s0">as </span><span class="s1">pd</span>
+<span class="s0">from </span><span class="s1">. </span><span class="s0">import </span><span class="s1">db</span>
+
+
+<span class="s1">views = Blueprint(</span><span class="s2">'views'</span><span class="s0">, </span><span class="s1">__name__)</span>
+
+
+<span class="s1">@views.route(</span><span class="s2">'/'</span><span class="s0">, </span><span class="s1">methods=[</span><span class="s2">'GET'</span><span class="s0">, </span><span class="s2">'POST'</span><span class="s1">])</span>
+<span class="s1">@login_required</span>
+<span class="s0">def </span><span class="s1">home():</span>
+    <span class="s0">global </span><span class="s1">today_date_time</span><span class="s0">, </span><span class="s1">recommit</span><span class="s0">, </span><span class="s1">today</span><span class="s0">, </span><span class="s1">rate_card_index</span><span class="s0">, </span><span class="s1">prime_rate</span><span class="s0">, </span><span class="s1">swap_rate</span><span class="s0">, </span><span class="s1">userselection_scooters</span><span class="s0">,</span><span class="s1">userselection_term_missing</span><span class="s0">, </span><span class="s1">userselection_bridge_loan</span><span class="s0">,</span><span class="s1">userselection_ratetype</span><span class="s0">,</span><span class="s1">userselection_term</span><span class="s0">, </span><span class="s1">userselection_fee</span><span class="s0">,</span><span class="s1">userselection_pricing</span><span class="s0">, </span><span class="s1">userselection_grade</span><span class="s0">, </span><span class="s1">userselection_dp</span><span class="s0">, </span><span class="s1">selected_date</span><span class="s0">, </span><span class="s1">down_payment_fee_dict</span>
+
+
+
+    <span class="s1">data = {</span><span class="s2">'Month'</span><span class="s1">:[</span><span class="s2">''</span><span class="s1">]</span><span class="s0">,</span>
+                       <span class="s2">'APC Grade'</span><span class="s1">:[</span><span class="s2">''</span><span class="s1">]</span><span class="s0">,</span>
+                       <span class="s2">'60/60'</span><span class="s1">:[</span><span class="s2">''</span><span class="s1">]</span><span class="s0">,</span>
+                       <span class="s2">'60/84'</span><span class="s1">:[</span><span class="s2">''</span><span class="s1">]</span><span class="s0">,</span>
+                       <span class="s2">'84/84'</span><span class="s1">:[</span><span class="s2">''</span><span class="s1">]</span><span class="s0">,</span>
+                       <span class="s2">'84/120'</span><span class="s1">:[</span><span class="s2">''</span><span class="s1">]</span><span class="s0">,</span>
+                       <span class="s2">'120/120'</span><span class="s1">:[</span><span class="s2">''</span><span class="s1">]</span>
+                       <span class="s1">}</span>
+    <span class="s1">rate_card_table = pd.DataFrame(data)</span>
+
+    <span class="s1">results = {</span>
+        <span class="s2">'index_rate_used'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+        <span class="s2">'rate_card_used'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+        <span class="s2">'final_rate'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+        <span class="s2">'spread_rate'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+        <span class="s2">'index_rate'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+        <span class="s2">'index_rate_date'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+        <span class="s2">'rate_type'</span><span class="s1">: </span><span class="s2">''</span>
+    <span class="s1">}</span>
+
+    <span class="s1">previous_data = {}</span>
+
+    <span class="s1">button = request.form.get(</span><span class="s2">'clear'</span><span class="s1">)</span>
+    <span class="s0">if </span><span class="s1">button == </span><span class="s2">'Clear'</span><span class="s1">:</span>
+        <span class="s1">results = {</span>
+            <span class="s2">'index_rate_used'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+            <span class="s2">'rate_card_used'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+            <span class="s2">'final_rate'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+            <span class="s2">'spread_rate'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+            <span class="s2">'index_rate'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+            <span class="s2">'index_rate_date'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+            <span class="s2">'rate_type'</span><span class="s1">: </span><span class="s2">''</span><span class="s0">,</span>
+            <span class="s2">'recommit'</span><span class="s1">: </span><span class="s2">''</span>
+        <span class="s1">}</span>
+
+        <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">, </span><span class="s1">previous_data=previous_data)</span>
+
+        <span class="s0">return</span>
+    <span class="s0">else</span><span class="s1">:</span>
+        <span class="s0">pass</span>
+
+
+    <span class="s0">if </span><span class="s1">request.method == </span><span class="s2">'POST'</span><span class="s1">:</span>
+        <span class="s1">print(</span><span class="s2">'post start'</span><span class="s1">)</span>
+        <span class="s1">previous_data = {</span>
+        <span class="s2">'recommit'</span><span class="s1">:request.form.get(</span><span class="s2">'recommit'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'userselection_scooters' </span><span class="s1">: request.form.get(</span><span class="s2">'scooters_coffee'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'userselection_bridge_loan' </span><span class="s1">: request.form.get(</span><span class="s2">'bridge_loan'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'userselection_ratetype' </span><span class="s1">: request.form.get(</span><span class="s2">'rate_type'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'userselection_term' </span><span class="s1">: request.form.get(</span><span class="s2">'term'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'userselection_fee' </span><span class="s1">: request.form.get(</span><span class="s2">'embedded_fee'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'userselection_pricing' </span><span class="s1">: request.form.get(</span><span class="s2">'pricing_basis'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'userselection_grade' </span><span class="s1">: request.form.get(</span><span class="s2">'investment_grade'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'userselection_dp' </span><span class="s1">: request.form.get(</span><span class="s2">'down_payment'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'selected_date' </span><span class="s1">: request.form.get(</span><span class="s2">'selected_date'</span><span class="s1">)</span>
+                               <span class="s1">}</span>
+
+        <span class="s1">print(</span><span class="s2">'previous data'</span><span class="s1">)</span>
+
+        <span class="s1">recommit = request.form.get(</span><span class="s2">'recommit'</span><span class="s1">)</span>
+        <span class="s1">userselection_scooters = request.form.get(</span><span class="s2">'scooters_coffee'</span><span class="s1">)</span>
+        <span class="s1">userselection_bridge_loan = request.form.get(</span><span class="s2">'bridge_loan'</span><span class="s1">)</span>
+        <span class="s1">userselection_ratetype = request.form.get(</span><span class="s2">'rate_type'</span><span class="s1">)</span>
+        <span class="s1">userselection_fee = request.form.get(</span><span class="s2">'embedded_fee'</span><span class="s1">)</span>
+        <span class="s1">userselection_pricing = request.form.get(</span><span class="s2">'pricing_basis'</span><span class="s1">)</span>
+        <span class="s1">userselection_grade = request.form.get(</span><span class="s2">'investment_grade'</span><span class="s1">)</span>
+        <span class="s1">userselection_dp = request.form.get(</span><span class="s2">'down_payment'</span><span class="s1">)</span>
+        <span class="s1">selected_date =request.form.get(</span><span class="s2">'selected_date'</span><span class="s1">)</span>
+        <span class="s1">userselection_term_missing = request.form.get(</span><span class="s2">'term'</span><span class="s1">)</span>
+
+        <span class="s0">if </span><span class="s1">selected_date == </span><span class="s2">'' </span><span class="s0">and </span><span class="s1">recommit == </span><span class="s2">'Y'</span><span class="s1">:</span>
+            <span class="s1">flash(</span><span class="s2">'Date Selection Required or Update Recommit to N'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+            <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">,</span><span class="s1">previous_data=previous_data)</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s0">pass</span>
+
+        <span class="s1">missing_selection = missing()</span>
+        <span class="s0">if </span><span class="s1">missing_selection == </span><span class="s2">'Missing'</span><span class="s1">:</span>
+            <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">,</span><span class="s1">previous_data=previous_data)</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s0">pass</span>
+
+        <span class="s1">term_dict = {</span>
+            <span class="s2">'60/60'</span><span class="s1">: </span><span class="s2">'term_60_60'</span><span class="s0">,</span>
+            <span class="s2">'60/84'</span><span class="s1">: </span><span class="s2">'term_60_84'</span><span class="s0">,</span>
+            <span class="s2">'84/84'</span><span class="s1">: </span><span class="s2">'term_84_84'</span><span class="s0">,</span>
+            <span class="s2">'84/120'</span><span class="s1">: </span><span class="s2">'term_84_120'</span><span class="s0">,</span>
+            <span class="s2">'120/120'</span><span class="s1">: </span><span class="s2">'term_120_120'</span>
+        <span class="s1">}</span>
+        <span class="s1">userselection_term = term_dict.get(request.form.get(</span><span class="s2">'term'</span><span class="s1">))</span>
+
+        <span class="s1">down_payment_fee_dict = {</span><span class="s2">'Y'</span><span class="s1">: </span><span class="s3">0.25</span><span class="s0">, </span><span class="s2">'N'</span><span class="s1">: </span><span class="s3">0.00</span><span class="s0">, </span><span class="s2">'NA'</span><span class="s1">: </span><span class="s3">0.00</span><span class="s1">}</span>
+
+        <span class="s1">prime_rate = PrimeRate.query.order_by(desc(PrimeRate.Date)).first()</span>
+        <span class="s1">swap_rate = SwapRate.query.order_by(desc(SwapRate.Date)).first().three_Year</span>
+        <span class="s1">today_date_time = datetime.datetime.today()</span>
+        <span class="s1">today = today_date_time.date()</span>
+        <span class="s4">#all_prime = datetime.datetime(2023, 5, 4)</span>
+        <span class="s1">all_swap = datetime.datetime(</span><span class="s3">2023</span><span class="s0">, </span><span class="s3">10</span><span class="s0">, </span><span class="s3">6</span><span class="s1">)</span>
+
+        <span class="s1">log_selections()</span>
+
+        <span class="s0">if </span><span class="s1">userselection_bridge_loan == </span><span class="s2">'Y'</span><span class="s1">:</span>
+            <span class="s1">bridge_loan_func()</span>
+            <span class="s1">results = bridge_results</span>
+            <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">, </span><span class="s1">previous_data=previous_data)</span>
+
+        <span class="s0">if </span><span class="s1">userselection_scooters == </span><span class="s2">'Y'</span><span class="s1">:</span>
+            <span class="s1">scooters_func()</span>
+            <span class="s1">results = scooters_results</span>
+            <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">, </span><span class="s1">previous_data=previous_data)</span>
+
+        <span class="s0">if </span><span class="s1">recommit == </span><span class="s2">'Y'</span><span class="s1">:</span>
+
+            <span class="s1">selected_date = datetime.datetime.strptime(selected_date</span><span class="s0">, </span><span class="s2">&quot;%Y-%m-%d&quot;</span><span class="s1">)</span>
+
+
+            <span class="s0">if </span><span class="s1">(today_date_time - selected_date).days &gt; </span><span class="s3">120</span><span class="s1">:</span>
+                <span class="s1">flash(</span><span class="s2">'Credit Officer Approval Date &gt; 120 Days Ago, Current Month Rate Card Used'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+                <span class="s1">current_credit_policy()</span>
+                <span class="s1">rate_card_index = SwapRate.query.order_by(desc(SwapRate.Date)).first().three_Year</span>
+                <span class="s1">rate_card()</span>
+                <span class="s1">results = current_credit_policy_results</span>
+                <span class="s1">rate_card_table = rate_card_df</span>
+                <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">,</span><span class="s1">previous_data=previous_data)</span>
+
+            <span class="s0">elif </span><span class="s1">selected_date &gt; today_date_time:</span>
+                <span class="s1">flash(</span><span class="s2">'Can</span><span class="s0">\'</span><span class="s2">t select a future date'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+                <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">,</span><span class="s1">previous_data=previous_data)</span>
+
+            <span class="s0">elif </span><span class="s1">selected_date &lt;= all_swap:</span>
+                <span class="s1">previous_credit_policy()</span>
+                <span class="s1">rate_card_index = PrimeRate.query.order_by(desc(PrimeRate.Date)).first().Rate</span>
+                <span class="s1">rate_card()</span>
+                <span class="s1">results = previous_credit_policy_results</span>
+                <span class="s1">rate_card_table = rate_card_df</span>
+                <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">, </span><span class="s1">previous_data=previous_data)</span>
+
+            <span class="s0">else</span><span class="s1">:</span>
+                <span class="s1">current_credit_policy()</span>
+                <span class="s1">rate_card_index = SwapRate.query.order_by(desc(SwapRate.Date)).first().three_Year</span>
+                <span class="s1">rate_card()</span>
+                <span class="s1">results = current_credit_policy_results</span>
+                <span class="s1">rate_card_table = rate_card_df</span>
+                <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">, </span><span class="s1">previous_data=previous_data)</span>
+
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s1">current_credit_policy()</span>
+            <span class="s1">rate_card_index = SwapRate.query.order_by(desc(SwapRate.Date)).first().three_Year</span>
+            <span class="s1">rate_card()</span>
+            <span class="s1">results = current_credit_policy_results</span>
+            <span class="s1">rate_card_table = rate_card_df</span>
+            <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">, </span><span class="s1">previous_data=previous_data)</span>
+
+
+
+    <span class="s0">return </span><span class="s1">render_template(</span><span class="s2">&quot;home.html&quot;</span><span class="s0">, </span><span class="s1">user=current_user</span><span class="s0">, </span><span class="s1">results=results</span><span class="s0">, </span><span class="s1">rate_card_table=rate_card_table</span><span class="s0">,</span><span class="s1">previous_data=previous_data)</span>
+
+<span class="s0">def </span><span class="s1">missing():</span>
+    <span class="s0">if </span><span class="s1">userselection_term_missing == </span><span class="s2">'Make Selection'</span><span class="s1">:</span>
+        <span class="s1">flash(</span><span class="s2">'Missing term'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+        <span class="s0">return </span><span class="s2">'Missing'</span>
+    <span class="s0">elif </span><span class="s1">userselection_fee == </span><span class="s2">'Make Selection'</span><span class="s1">:</span>
+        <span class="s1">flash(</span><span class="s2">'Missing fee'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+        <span class="s0">return </span><span class="s2">'Missing'</span>
+    <span class="s0">elif </span><span class="s1">userselection_pricing == </span><span class="s2">'Make Selection'</span><span class="s1">:</span>
+        <span class="s1">flash(</span><span class="s2">'Missing pricing'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+        <span class="s0">return </span><span class="s2">'Missing'</span>
+    <span class="s0">elif </span><span class="s1">userselection_grade == </span><span class="s2">'Make Selection'</span><span class="s1">:</span>
+        <span class="s1">flash(</span><span class="s2">'Missing grade'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+        <span class="s0">return </span><span class="s2">'Missing'</span>
+    <span class="s0">elif </span><span class="s1">userselection_dp == </span><span class="s2">'Make Selection'</span><span class="s1">:</span>
+        <span class="s1">flash(</span><span class="s2">'Missing down payment'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+        <span class="s0">return </span><span class="s2">'Missing'</span>
+    <span class="s0">return None</span>
+
+<span class="s0">def </span><span class="s1">log_selections():</span>
+    <span class="s1">rate_card = RateCard(</span>
+        <span class="s1">user=current_user.name</span><span class="s0">,</span>
+        <span class="s1">calculated_date=datetime.datetime.today()</span><span class="s0">,</span>
+        <span class="s1">recommit=recommit</span><span class="s0">,</span>
+        <span class="s1">credit_officer_approval_date=selected_date</span><span class="s0">,</span>
+        <span class="s1">scooters=userselection_scooters</span><span class="s0">,</span>
+        <span class="s1">bridge=userselection_bridge_loan</span><span class="s0">,</span>
+        <span class="s1">rate_type=userselection_ratetype </span><span class="s0">,</span>
+        <span class="s1">term=userselection_term</span><span class="s0">,</span>
+        <span class="s1">embedded_fee=userselection_fee </span><span class="s0">,</span>
+        <span class="s1">investment_grade = userselection_grade</span><span class="s0">,</span>
+        <span class="s1">pricing_basis=userselection_pricing </span><span class="s0">,</span>
+        <span class="s1">down_payment = userselection_dp</span>
+    <span class="s1">)</span>
+    <span class="s1">db.session.add(rate_card)</span>
+    <span class="s1">db.session.commit()</span>
+
+<span class="s0">def </span><span class="s1">bridge_loan_func():</span>
+    <span class="s0">global </span><span class="s1">bridge_results</span>
+
+    <span class="s1">bridge_results = {</span>
+    <span class="s2">'index_rate_used'</span><span class="s1">: </span><span class="s2">'Prime'</span><span class="s0">,</span>
+    <span class="s2">'rate_card_used'</span><span class="s1">: </span><span class="s2">'Pro Forma'</span><span class="s0">,</span>
+    <span class="s2">'final_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">float(prime_rate.Rate) + float(</span><span class="s3">3.5</span><span class="s1">)</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+    <span class="s2">'spread_rate'</span><span class="s1">: </span><span class="s2">'3.50%'</span><span class="s0">,</span>
+    <span class="s2">'index_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">prime_rate.Rate</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+    <span class="s2">'index_rate_date'</span><span class="s1">: prime_rate.Date.strftime(</span><span class="s2">'%m/%d/%Y'</span><span class="s1">)</span><span class="s0">,</span>
+    <span class="s2">'rate_type'</span><span class="s1">: </span><span class="s2">'Fixed'</span><span class="s1">}</span>
+    <span class="s0">return</span><span class="s1">(bridge_results)</span>
+
+<span class="s0">def </span><span class="s1">scooters_func():</span>
+    <span class="s0">global </span><span class="s1">scooters_results</span>
+
+    <span class="s4">#cashflow scooters deals are now getting cashflow pricing. # Proforma still gets the 1.5%</span>
+    <span class="s1">scooters_cash_flow = datetime.datetime(</span><span class="s3">2023</span><span class="s0">, </span><span class="s3">7</span><span class="s0">, </span><span class="s3">8</span><span class="s1">)</span>
+    <span class="s4">#Started using 3year swap</span>
+    <span class="s1">scooters_swaps = datetime.datetime(</span><span class="s3">2023</span><span class="s0">, </span><span class="s3">10</span><span class="s0">, </span><span class="s3">5</span><span class="s1">)</span>
+    <span class="s1">selected_date = request.form.get(</span><span class="s2">'selected_date'</span><span class="s1">)</span>
+
+    <span class="s0">if </span><span class="s1">selected_date == </span><span class="s2">'' </span><span class="s0">or </span><span class="s1">recommit ==</span><span class="s2">'N'</span><span class="s1">:</span>
+        <span class="s1">selected_date = datetime.datetime.today()</span>
+    <span class="s0">else</span><span class="s1">:</span>
+        <span class="s1">selected_date = datetime.datetime.strptime(selected_date</span><span class="s0">, </span><span class="s2">&quot;%Y-%m-%d&quot;</span><span class="s1">)</span>
+
+
+    <span class="s0">if </span><span class="s1">(today_date_time - selected_date).days &gt; </span><span class="s3">120</span><span class="s1">:</span>
+        <span class="s0">if </span><span class="s1">userselection_pricing ==</span><span class="s2">'Pro Forma'</span><span class="s1">:</span>
+            <span class="s1">temp_base_spread = </span><span class="s3">5.6</span>
+            <span class="s1">flash(</span><span class="s2">'Credit Officer Approval Date &gt; 120 Days Ago, Current Month Rate Card Used'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s1">temp_base_spread = </span><span class="s3">4.95</span>
+            <span class="s1">flash(</span><span class="s2">'Credit Officer Approval Date &gt; 120 Days Ago, Current Month Rate Card Used'</span><span class="s0">, </span><span class="s1">category=</span><span class="s2">'error'</span><span class="s1">)</span>
+
+    <span class="s0">elif </span><span class="s1">selected_date &lt; scooters_cash_flow:</span>
+        <span class="s1">temp_base_spread = </span><span class="s3">1.5</span>
+
+    <span class="s0">elif </span><span class="s1">selected_date &gt; scooters_cash_flow </span><span class="s0">and </span><span class="s1">selected_date &lt; scooters_swaps:</span>
+        <span class="s0">if </span><span class="s1">userselection_pricing ==</span><span class="s2">'Pro Forma'</span><span class="s1">:</span>
+            <span class="s1">temp_base_spread = </span><span class="s3">1.5</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s4"># Selecting rate card</span>
+            <span class="s1">selected_spread = Spreads.query.filter(</span>
+                <span class="s1">and_(Spreads.Start &lt;= today</span><span class="s0">, </span><span class="s1">Spreads.End &gt;= today</span><span class="s0">,</span>
+                     <span class="s1">Spreads.APCGrade == userselection_grade</span><span class="s0">,</span>
+                     <span class="s1">Spreads.PricingBasis == userselection_pricing</span><span class="s0">,</span>
+                     <span class="s1">Spreads.RateType == userselection_ratetype</span>
+                     <span class="s1">)</span>
+            <span class="s1">).first()</span>
+            <span class="s1">temp_base_spread = float(getattr(selected_spread</span><span class="s0">, </span><span class="s1">userselection_term))</span>
+
+    <span class="s0">else</span><span class="s1">:</span>
+        <span class="s0">if </span><span class="s1">userselection_pricing ==</span><span class="s2">'Pro Forma'</span><span class="s1">:</span>
+            <span class="s1">temp_base_spread = </span><span class="s3">5.6</span>
+        <span class="s0">else</span><span class="s1">:</span>
+            <span class="s1">temp_base_spread = </span><span class="s3">4.95</span>
+
+    <span class="s4"># selecting the embedded fee</span>
+    <span class="s1">selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()</span>
+    <span class="s1">temp_embedded = getattr(selected_fee</span><span class="s0">, </span><span class="s1">userselection_term)</span>
+
+    <span class="s1">base_spread = round(temp_base_spread + float(temp_embedded)</span><span class="s0">, </span><span class="s3">4</span><span class="s1">)</span>
+
+    <span class="s1">final_spread = round(base_spread + float(prime_rate.Rate)</span><span class="s0">, </span><span class="s3">4</span><span class="s1">)</span>
+
+    <span class="s1">scooters_results = {</span>
+        <span class="s2">'index_rate_used'</span><span class="s1">: </span><span class="s2">'Prime'</span><span class="s0">,</span>
+        <span class="s2">'rate_card_used'</span><span class="s1">: </span><span class="s2">'Scooters Pricing'</span><span class="s0">,</span>
+        <span class="s2">'final_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">final_spread</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'spread_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">base_spread</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'index_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">prime_rate.Rate</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'index_rate_date'</span><span class="s1">: prime_rate.Date.strftime(</span><span class="s2">'%m/%d/%Y'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'rate_type'</span><span class="s1">: </span><span class="s2">'Fixed'</span><span class="s0">,</span>
+        <span class="s2">'loan_buyer_spread'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">temp_base_spread</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'loan_buyer_fee'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">temp_embedded</span><span class="s0">}</span><span class="s2">%&quot;</span>
+    <span class="s1">}</span>
+    <span class="s0">return </span><span class="s1">(scooters_results)</span>
+
+<span class="s0">def </span><span class="s1">current_credit_policy():</span>
+    <span class="s1">print(</span><span class="s2">'new process'</span><span class="s1">)</span>
+    <span class="s0">global </span><span class="s1">current_credit_policy_results</span>
+
+    <span class="s1">current_credit_policy_results = {}</span>
+
+    <span class="s0">if </span><span class="s1">recommit ==</span><span class="s2">&quot;Y&quot; </span><span class="s0">and </span><span class="s1">(today_date_time - selected_date).days &lt; </span><span class="s3">120</span><span class="s1">:</span>
+        <span class="s4"># Selecting rate card</span>
+        <span class="s1">selected_spread = Spreads.query.filter(</span>
+            <span class="s1">and_(</span>
+                <span class="s1">Spreads.Start &lt;= selected_date</span><span class="s0">,</span>
+                <span class="s1">Spreads.End &gt;= selected_date</span><span class="s0">,</span>
+                <span class="s1">Spreads.APCGrade == userselection_grade</span><span class="s0">,</span>
+                <span class="s1">Spreads.PricingBasis == userselection_pricing</span><span class="s0">,</span>
+                <span class="s1">Spreads.RateType == userselection_ratetype</span>
+            <span class="s1">)</span>
+        <span class="s1">).first()</span>
+        <span class="s1">temp_base_spread = getattr(selected_spread</span><span class="s0">, </span><span class="s1">userselection_term)</span>
+
+    <span class="s0">else</span><span class="s1">:</span>
+        <span class="s4"># Selecting rate card</span>
+        <span class="s1">selected_spread = Spreads.query.filter(</span>
+            <span class="s1">and_(Spreads.Start &lt;= today</span><span class="s0">,</span><span class="s1">Spreads.End &gt;= today</span><span class="s0">,</span>
+                <span class="s1">Spreads.APCGrade == userselection_grade</span><span class="s0">,</span>
+                <span class="s1">Spreads.PricingBasis == userselection_pricing</span><span class="s0">,</span>
+                <span class="s1">Spreads.RateType == userselection_ratetype</span>
+            <span class="s1">)</span>
+        <span class="s1">).first()</span>
+        <span class="s1">temp_base_spread = getattr(selected_spread</span><span class="s0">, </span><span class="s1">userselection_term)</span>
+
+    <span class="s4"># selecting the embedded fee</span>
+    <span class="s1">selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()</span>
+    <span class="s1">temp_embedded = getattr(selected_fee</span><span class="s0">, </span><span class="s1">userselection_term)</span>
+
+    <span class="s4"># base spread</span>
+    <span class="s1">base_spread = round(</span>
+        <span class="s1">float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp])</span><span class="s0">, </span><span class="s3">4</span><span class="s1">)</span>
+
+
+    <span class="s4"># final interest rate</span>
+    <span class="s1">final_spread = round(base_spread + float(swap_rate)</span><span class="s0">, </span><span class="s3">4</span><span class="s1">)</span>
+
+    <span class="s4">#return results</span>
+    <span class="s1">current_credit_policy_results = {</span>
+        <span class="s2">'index_rate_used'</span><span class="s1">: </span><span class="s2">&quot;Swap - 3 Year&quot;</span><span class="s0">,</span>
+        <span class="s2">'rate_card_used'</span><span class="s1">: userselection_pricing</span><span class="s0">,</span>
+        <span class="s2">'final_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">final_spread</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'spread_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">base_spread</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'index_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">swap_rate</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'index_rate_date'</span><span class="s1">: SwapRate.query.order_by(desc(SwapRate.Date)).first().Date.strftime(</span><span class="s2">'%m/%d/%Y'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'rate_type'</span><span class="s1">: </span><span class="s2">'Fixed'</span><span class="s0">,</span>
+        <span class="s2">'loan_buyer_spread'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">temp_base_spread</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'loan_buyer_fee'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">temp_embedded</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'loan_buyer_dp'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">down_payment_fee_dict[userselection_dp]</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span>
+    <span class="s1">}</span>
+    <span class="s0">return </span><span class="s1">(current_credit_policy_results)</span>
+
+<span class="s0">def </span><span class="s1">previous_credit_policy():</span>
+    <span class="s0">global </span><span class="s1">previous_credit_policy_results</span>
+
+    <span class="s1">previous_credit_policy_results = {}</span>
+
+    <span class="s0">if </span><span class="s1">recommit == </span><span class="s2">&quot;Y&quot; </span><span class="s0">and </span><span class="s1">(today_date_time - selected_date).days &lt; </span><span class="s3">120</span><span class="s1">:</span>
+        <span class="s4"># Selecting rate card</span>
+        <span class="s1">selected_spread = Spreads.query.filter(</span>
+            <span class="s1">and_(</span>
+                <span class="s1">Spreads.Start &lt;= selected_date</span><span class="s0">,</span>
+                <span class="s1">Spreads.End &gt;= selected_date</span><span class="s0">,</span>
+                <span class="s1">Spreads.APCGrade == userselection_grade</span><span class="s0">,</span>
+                <span class="s1">Spreads.PricingBasis == userselection_pricing</span><span class="s0">,</span>
+                <span class="s1">Spreads.RateType == userselection_ratetype</span>
+            <span class="s1">)</span>
+        <span class="s1">).first()</span>
+        <span class="s1">temp_base_spread = getattr(selected_spread</span><span class="s0">, </span><span class="s1">userselection_term)</span>
+
+    <span class="s0">else</span><span class="s1">:</span>
+        <span class="s4"># Selecting rate card</span>
+        <span class="s1">selected_spread = Spreads.query.filter(</span>
+            <span class="s1">and_(Spreads.Start &lt;= today</span><span class="s0">, </span><span class="s1">Spreads.End &gt;= today</span><span class="s0">,</span>
+                 <span class="s1">Spreads.APCGrade == userselection_grade</span><span class="s0">,</span>
+                 <span class="s1">Spreads.PricingBasis == userselection_pricing</span><span class="s0">,</span>
+                 <span class="s1">Spreads.RateType == userselection_ratetype</span>
+                 <span class="s1">)</span>
+        <span class="s1">).first()</span>
+        <span class="s1">temp_base_spread = getattr(selected_spread</span><span class="s0">, </span><span class="s1">userselection_term)</span>
+
+    <span class="s4"># selecting the embedded fee</span>
+    <span class="s1">selected_fee = db.session.query(EmbeddedFee).filter(EmbeddedFee.Fee_Buy_Down == userselection_fee).first()</span>
+    <span class="s1">temp_embedded = getattr(selected_fee</span><span class="s0">, </span><span class="s1">userselection_term)</span>
+
+    <span class="s4"># base spread</span>
+    <span class="s1">base_spread = round(</span>
+        <span class="s1">float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp])</span><span class="s0">, </span><span class="s3">4</span><span class="s1">)</span>
+
+    <span class="s4"># final interest rate</span>
+    <span class="s1">final_spread = round(base_spread + float(prime_rate.Rate)</span><span class="s0">, </span><span class="s3">4</span><span class="s1">)</span>
+
+    <span class="s4"># return results</span>
+    <span class="s1">previous_credit_policy_results = {</span>
+        <span class="s2">'index_rate_used'</span><span class="s1">: </span><span class="s2">'Prime'</span><span class="s0">,</span>
+        <span class="s2">'rate_card_used'</span><span class="s1">: userselection_pricing</span><span class="s0">,</span>
+        <span class="s2">'final_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">final_spread</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'spread_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">base_spread</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'index_rate'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">prime_rate.Rate</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'index_rate_date'</span><span class="s1">: prime_rate.Date.strftime(</span><span class="s2">'%m/%d/%Y'</span><span class="s1">)</span><span class="s0">,</span>
+        <span class="s2">'rate_type'</span><span class="s1">: </span><span class="s2">'Fixed'</span><span class="s0">,</span>
+        <span class="s2">'loan_buyer_spread'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">temp_base_spread</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'loan_buyer_fee'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">temp_embedded</span><span class="s0">}</span><span class="s2">%&quot;</span><span class="s0">,</span>
+        <span class="s2">'loan_buyer_dp'</span><span class="s1">: </span><span class="s2">f&quot;</span><span class="s0">{</span><span class="s1">down_payment_fee_dict[userselection_dp]</span><span class="s0">: </span><span class="s2">.2f</span><span class="s0">}</span><span class="s2">%&quot;</span>
+    <span class="s1">}</span>
+    <span class="s0">return </span><span class="s1">(previous_credit_policy_results)</span>
+
+<span class="s0">def </span><span class="s1">rate_card():</span>
+    <span class="s0">global </span><span class="s1">rate_card_df</span>
+
+    <span class="s0">if </span><span class="s1">recommit ==</span><span class="s2">&quot;Y&quot; </span><span class="s0">and </span><span class="s1">(today_date_time - selected_date).days &lt; </span><span class="s3">120</span><span class="s1">:</span>
+        <span class="s4"># selecting rate card for the table</span>
+        <span class="s1">temp_table = db.session.query(Spreads).filter(</span>
+            <span class="s1">and_(</span>
+                <span class="s1">Spreads.Start &lt;= selected_date</span><span class="s0">,</span>
+                <span class="s1">Spreads.End &gt;= selected_date</span><span class="s0">,</span>
+                <span class="s1">Spreads.PricingBasis == userselection_pricing</span><span class="s0">,</span>
+                <span class="s1">Spreads.RateType == userselection_ratetype</span>
+            <span class="s1">)</span>
+        <span class="s1">).all()</span>
+
+    <span class="s0">else</span><span class="s1">:</span>
+        <span class="s4"># selecting rate card for the table</span>
+        <span class="s1">temp_table = db.session.query(Spreads).filter(</span>
+            <span class="s1">and_(</span>
+                <span class="s1">Spreads.Start &lt;= today</span><span class="s0">,</span>
+                <span class="s1">Spreads.End &gt;= today</span><span class="s0">,</span>
+                <span class="s1">Spreads.PricingBasis == userselection_pricing</span><span class="s0">,</span>
+                <span class="s1">Spreads.RateType == userselection_ratetype</span>
+            <span class="s1">)</span>
+        <span class="s1">).all()</span>
+
+    <span class="s4"># table creation</span>
+    <span class="s1">nice_term_vals = [</span><span class="s2">'60/60'</span><span class="s0">, </span><span class="s2">'60/84'</span><span class="s0">, </span><span class="s2">'84/84'</span><span class="s0">, </span><span class="s2">'84/120'</span><span class="s0">, </span><span class="s2">'120/120'</span><span class="s1">]</span>
+    <span class="s4"># Mapping between attribute names and nice terms</span>
+    <span class="s1">term_map = {</span><span class="s2">'term_60_60'</span><span class="s1">: </span><span class="s2">'60/60'</span><span class="s0">, </span><span class="s2">'term_60_84'</span><span class="s1">: </span><span class="s2">'60/84'</span><span class="s0">, </span><span class="s2">'term_84_84'</span><span class="s1">: </span><span class="s2">'84/84'</span><span class="s0">, </span><span class="s2">'term_84_120'</span><span class="s1">: </span><span class="s2">'84/120'</span><span class="s0">,</span>
+                <span class="s2">'term_120_120'</span><span class="s1">: </span><span class="s2">'120/120'</span><span class="s1">}</span>
+    <span class="s1">transformed_values = list()</span>
+    <span class="s0">for </span><span class="s1">spread_object </span><span class="s0">in </span><span class="s1">temp_table:</span>
+        <span class="s1">new_row = list()</span>
+        <span class="s0">for </span><span class="s1">attr</span><span class="s0">, </span><span class="s1">term_val </span><span class="s0">in </span><span class="s1">term_map.items():</span>
+            <span class="s1">column = getattr(spread_object</span><span class="s0">, </span><span class="s1">attr)</span>
+            <span class="s1">selected_fee_table = EmbeddedFee.query.filter_by(Fee_Buy_Down=userselection_fee).first()</span>
+            <span class="s1">temp_embedded_table = getattr(selected_fee_table</span><span class="s0">, </span><span class="s1">attr)</span>
+
+            <span class="s1">temp_val = round(</span>
+                <span class="s1">float(column) + float(temp_embedded_table) + float(down_payment_fee_dict[userselection_dp])</span><span class="s0">, </span><span class="s3">4</span><span class="s1">)</span>
+
+            <span class="s1">temp_final = round((temp_val + float(rate_card_index))</span><span class="s0">, </span><span class="s3">2</span><span class="s1">)</span>
+
+            <span class="s1">new_row.append(</span><span class="s2">&quot;{:.2f}&quot;</span><span class="s1">.format(temp_final) + </span><span class="s2">'%'</span><span class="s1">)</span>
+
+        <span class="s1">transformed_values.append(new_row)</span>
+
+    <span class="s1">month_list = [spread_object.Month </span><span class="s0">for </span><span class="s1">spread_object </span><span class="s0">in </span><span class="s1">temp_table]</span>
+    <span class="s1">grade_list = [spread_object.APCGrade </span><span class="s0">for </span><span class="s1">spread_object </span><span class="s0">in </span><span class="s1">temp_table]</span>
+    <span class="s1">rate_card_df = pd.DataFrame(transformed_values</span><span class="s0">, </span><span class="s1">columns=nice_term_vals)</span>
+    <span class="s1">rate_card_df.insert(</span><span class="s3">0</span><span class="s0">, </span><span class="s2">'Month'</span><span class="s0">, </span><span class="s1">month_list)</span>
+    <span class="s1">rate_card_df.insert(</span><span class="s3">1</span><span class="s0">, </span><span class="s2">'APC Grade'</span><span class="s0">, </span><span class="s1">grade_list)</span>
+
+    <span class="s0">return </span><span class="s1">rate_card_df</span>
+</pre>
+</body>
+</html>
