@@ -71,12 +71,14 @@ def create_app():
     from .fees import fees
     from .doc_generator import doc_generator
     from .cm_validation import cm_validation
+    from .apr_calc import apr_calc
 
     application.register_blueprint(auth, url_prefix='/')
     application.register_blueprint(fees, url_prefix='/Fees')
     application.register_blueprint(views, url_prefix='/RateCard')
     application.register_blueprint(doc_generator, url_prefix='/DocGenerator')
     application.register_blueprint(cm_validation, url_prefix='/CreditMemoValidation')
+    application.register_blueprint(apr_calc, url_prefix='/APRCalculator')
 
     from .models import User
     from .index_pull import index_rate_updates, index_rate_verification

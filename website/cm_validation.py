@@ -18,6 +18,7 @@ cm_validation = Blueprint('cm_validation', __name__)
 
 @cm_validation.route('/', methods=['GET', 'POST'])
 @login_required
+
 def credit_memo_validation():
     global potential_discrepancy, not_located, missing_bwg_data, bawag_indicator
     potential_discrepancy = {}
@@ -234,7 +235,7 @@ CASE
         END AS "loans.brand_category_at_time_of_application_for_investors",
 b.business_name as "legal_entities.name_reformatted", 
 b.business_property_full_address as address_of_subject_unit, 
-b.amortization_term as "loans.amortization_term",
+b.term as "loans.term",
 b.term as "loans.term", 
 b.pricing_basis as "loans.pricing_basis",
 b.interest_only_period as "loans.interest_only_period",
@@ -812,7 +813,7 @@ def loan_terms():
     try:
         amortizing_doc = re.search(amortizing_pattern, content['Loan terms']).group(1)
         amortizing_df = int(
-            matching_df['loans.amortization_term'].iloc[0] - matching_df['loans.interest_only_period'].iloc[0])
+            matching_df['loans.term'].iloc[0] - matching_df['loans.interest_only_period'].iloc[0])
         if int(amortizing_doc) != amortizing_df:
             potential_discrepancy['Loan Terms (Amortization)'] = {
                 'document_value': amortizing_doc,
@@ -1108,3 +1109,4 @@ def log_selections():
     )
     db.session.add(cm_validation)
     db.session.commit()
+
