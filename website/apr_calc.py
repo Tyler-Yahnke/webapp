@@ -92,60 +92,57 @@ def apr_calc_logic():
                 payment_1 = round((loan_amount * (interest_rate / 12)) + first_period_payment, 2)
                 payment_2 = round((loan_amount * (interest_rate / 12)), 2)
                 payment_3 = monthly_payment
-                payment_4 = balloon_payment + monthly_payment
 
                 interest_only_period = int((row['interest_only_period'] - 1))
-                if life_insurance_required == 't':
-                    # Calculate payment schedule
-                    calculate_payment_schedule(funding_date, expected_first_payment_date, term, lai)
 
-                    # Calculate remaining balance after each payment
-                    remaining_balances, insurance_premiums = calculate_remaining_balance(loan_amount, interest_rate, payment_periods,
-                                                 payment_1, payment_2, payment_3, payment_4,
-                                                 interest_only_period, pre_existing_policy_value)
+                calculate_payment_schedule(funding_date, expected_first_payment_date, term, lai)
 
+                # Calculate remaining balance after each payment
+                remaining_balances, insurance_premiums = calculate_remaining_balance(loan_amount, interest_rate,
+                                                                                     payment_periods,
+                                                                                     payment_1, payment_2, payment_3,
+                                                                                     interest_only_period,
+                                                                                     pre_existing_policy_value)
+                payment_4 = remaining_balances[-1] + monthly_payment
 
-                    # Calculate APR
-                    calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period, insurance_premiums)
+                #print(payment_4)
+                #print(payment_periods[0])
 
-
-                else:
-                    # Calculate payment schedule
-                    calculate_payment_schedule(funding_date, expected_first_payment_date, term, lai)
-
-                    insurance_premiums = [0] * len(payment_periods)
-
-                    # Calculate APR
-                    calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period, insurance_premiums)
             else:
                 payment_1 = monthly_payment + first_period_payment
                 payment_2 = monthly_payment
-                payment_3 = balloon_payment + monthly_payment
+                payment_3 = 0
                 payment_4 = 0  # No fourth payment when no IO
                 interest_only_period = int(row['interest_only_period']) if pd.notna(row['interest_only_period']) else 0
 
-                if life_insurance_required == 't':
-                    # Calculate payment schedule
-                    calculate_payment_schedule(funding_date, expected_first_payment_date, term, lai)
+                calculate_payment_schedule(funding_date, expected_first_payment_date, term, lai)
 
-                    # Calculate remaining balance after each payment
-                    remaining_balances, insurance_premiums = calculate_remaining_balance(loan_amount, interest_rate, payment_periods,
-                                                 payment_1, payment_2, payment_3, payment_4,
-                                                 interest_only_period, pre_existing_policy_value)
-
-                    # Calculate APR
-                    calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period, insurance_premiums)
+                # Calculate remaining balance after each payment
+                remaining_balances, insurance_premiums = calculate_remaining_balance(loan_amount, interest_rate,
+                                                                                     payment_periods,
+                                                                                     payment_1, payment_2, payment_3,
+                                                                                     interest_only_period,
+                                                                                     pre_existing_policy_value)
+                payment_3 = remaining_balances[-1] + monthly_payment
 
 
-                else:
+                #print(remaining_balances)
 
-                    # Calculate payment schedule
-                    calculate_payment_schedule(funding_date, expected_first_payment_date, term, lai)
 
-                    insurance_premiums = [0] * len(payment_periods)
+            if life_insurance_required != 't':
+                insurance_premiums = [0] * row['term']
 
-                    # Calculate APR
-                    calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period,insurance_premiums)
+
+
+            #print(payment_1)
+            #print(payment_2)
+            #print(payment_3)
+            #print(payment_4)
+
+            # Calculate APR
+            calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period, insurance_premiums)
+
+
 
             # Collect results after processing each row
             payment_results.append({
@@ -278,7 +275,7 @@ def calculate_payment_schedule(funding_date, expected_first_payment_date, term, 
 
     previous_month_date = expected_first_payment_date - relativedelta(months=1)
     first_payment_period = 1 + ((previous_month_date - funding_date).days / 30)
-    payment_periods = [round(first_payment_period, 5)]
+    payment_periods = [round(first_payment_period, 2)]
     for i in range(1, term):
         payment_periods.append(round(payment_periods[-1] + 1, 5))
 
@@ -296,8 +293,10 @@ def calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, p
         npv = 0
         present_values = []
 
+        total_payment = payment_1 + (insurance_premiums[0]*payment_periods[0])
+
         # First payment
-        pv_first_payment = payment_1 + insurance_premiums[0] / (1 + apr_monthly_rate[0]) ** payment_periods[0]
+        pv_first_payment = total_payment / (1 + apr_monthly_rate[0]) ** payment_periods[0]
         npv += pv_first_payment
         present_values.append(pv_first_payment)
 
@@ -401,7 +400,7 @@ def round_up_to_nearest_tier(amount):
 
 
 def calculate_remaining_balance(loan_amount, interest_rate, payment_schedule, payment_1, payment_2, payment_3,
-                                payment_4, interest_only_period, pre_existing_policy_value):
+                                interest_only_period, pre_existing_policy_value):
 
     """Calculate remaining balance after each payment and determine life insurance premium based on prior month's balance."""
     balance = loan_amount
@@ -440,11 +439,7 @@ def calculate_remaining_balance(loan_amount, interest_rate, payment_schedule, pa
             remaining_balances.append(round(balance, 2))
             previous_balance = balance  # Update for next month
 
-        # Final Payment (Balloon Payment)
-        if payment_4 > 0:
-            insurance_premiums.append(0)  # No insurance needed when balance is zero
-            balance = 0
-            remaining_balances.append(round(balance, 2))
+            #print(remaining_balances)
 
         return remaining_balances, insurance_premiums
 
@@ -453,14 +448,16 @@ def calculate_remaining_balance(loan_amount, interest_rate, payment_schedule, pa
         insurance_tier, premium = round_up_to_nearest_tier(max(previous_balance - pre_existing_policy_value, 0))
         insurance_premiums.append(premium)
 
-        interest = balance * (interest_rate / 12)
-        principal = payment_1 - interest
+
+        interest = balance * ((interest_rate / 12))
+        principal = payment_1 - interest * payment_schedule[0]
         balance -= principal
         remaining_balances.append(round(balance, 2))
         previous_balance = balance  # Update for next month
 
+
         # Regular Payments
-        for _ in range(len(payment_schedule) - interest_only_period - 1):
+        for _ in range(len(payment_schedule) - 1):
             interest = balance * (interest_rate / 12)
             principal = payment_2 - interest
             balance -= principal
@@ -471,11 +468,11 @@ def calculate_remaining_balance(loan_amount, interest_rate, payment_schedule, pa
             remaining_balances.append(round(balance, 2))
             previous_balance = balance  # Update for next month
 
-        # Final Payment (Balloon Payment)
-        if payment_3 > 0:
-            insurance_premiums.append(0)  # No insurance needed when balance is zero
-            balance = 0
-            remaining_balances.append(round(balance, 2))
+       # # Final Payment (Balloon Payment)
+        #if payment_3 > 0:
+          #  insurance_premiums.append(0)  # No insurance needed when balance is zero
+          #  balance = 0
+           # remaining_balances.append(round(balance, 2))
 
 
     return remaining_balances, insurance_premiums
