@@ -80,6 +80,7 @@ def create_app():
     application.register_blueprint(cm_validation, url_prefix='/CreditMemoValidation')
     application.register_blueprint(apr_calc, url_prefix='/APRCalculator')
 
+
     from .models import User
     from .index_pull import index_rate_updates, index_rate_verification
 

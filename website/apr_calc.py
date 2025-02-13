@@ -105,7 +105,6 @@ def apr_calc_logic():
                                                  interest_only_period, pre_existing_policy_value)
 
 
-
                     # Calculate APR
                     calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period, insurance_premiums)
 
