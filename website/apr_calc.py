@@ -47,7 +47,7 @@ def apr_calc_logic():
             'end_date': user_selection_end_date
         }
 
-        print(previous_data)
+        #print(previous_data)
 
         if user_selection_lai=="" and user_selection_state =="Select State" and user_selection_start_date=="" and user_selection_end_date=="":
             flash('At least one search criteria must be given', category='error')
