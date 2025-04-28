@@ -22,12 +22,21 @@ apr_calc = Blueprint('apr_calc', __name__)
 def apr_calc_logic():
     print('apr_calc')
 
-    data = {'LAI': [''],
-            'APR': [''],
-            'Borrower State': [''],
-            'State': [''],
-            'Funded Date': [''],
-            'Net Loan Amount': ['']
+    data = {'lai': [''],
+                'net_loan_amount': [''],
+            'term': [''],
+                'apr': [''],
+                'payment_1': [''],
+                'payment_2': [''],
+                'payment_3': [''],
+                'payment_4': [''],
+                'interest_only_period': [''],
+                'loan_amount': [''],
+                'expected_first_payment_date': [''],
+                'life_insurance_required':[''],
+                'pre_existing_policy_value':[''],
+                'borrower_state': [''],
+                'funded_date': ['']
             }
     apr_table = pd.DataFrame(data)
 
@@ -73,17 +82,40 @@ def apr_calc_logic():
             funding_date = pd.to_datetime(row['funded_date'])
             expected_first_payment_date = pd.to_datetime(row['expected_first_payment_date'])
             term = int(row['term']) if pd.notna(row['term']) else 0
-            origination_fee = row['origination_fee']
             amount_financed = row['net_loan_amount']
             interest_rate = row['interest_rate'] / 100
             balloon_payment = row['balloon_payment']
-            first_period_payment = row['first_period_payment']
             loan_amount = row['loan_amount']
             monthly_payment = row['monthly_payment']
+            if row['first_period_payment'] is None:
+
+                #new way of calculating stub period
+                #expected_standard_first_payment_date = funding_date.replace(day=15) + pd.DateOffset(months=1)
+                #extra_days = (expected_standard_first_payment_date - funding_date).days
+
+                #old way of calculating stub period
+                start_day = min(funding_date.day, 30)
+                end_day = min(expected_first_payment_date.day, 30)
+                extra_days = ((expected_first_payment_date.year - funding_date.year) * 360 +
+                              (expected_first_payment_date.month - funding_date.month) * 30 +
+                              (end_day - start_day)) - 30  # Subtract 30 to get only the extra days
+
+                #print(extra_days)
+
+                # Calculate daily interest rate
+                daily_interest_rate = row['interest_rate'] / 100 / 360
+
+                # Calculate additional interest due to the delayed first payment
+                first_period_payment = round(loan_amount * daily_interest_rate * extra_days,2)
+
+            else:
+                first_period_payment = row['first_period_payment']
+
             life_insurance_required = row['life_insurance_required']
             pre_existing_policy_value = row['pre_existing_policy_value']
             borrowing_entity_state = row['borrowing_entity_state']
             lai = row['cl_contract']
+            system_calculated_apr = row['system_calculated_apr']
 
             apr_table = {}
 
@@ -103,13 +135,15 @@ def apr_calc_logic():
                                                                                      payment_1, payment_2, payment_3,
                                                                                      interest_only_period,
                                                                                      pre_existing_policy_value)
-                payment_4 = remaining_balances[-1] + monthly_payment
+                payment_4 = round(remaining_balances[-1] + monthly_payment,2)
 
+                #print(payment_1)
+                #print(payment_2)
+                #print(payment_3)
                 #print(payment_4)
-                #print(payment_periods[0])
 
             else:
-                payment_1 = monthly_payment + first_period_payment
+                payment_1 = round(monthly_payment + first_period_payment,2)
                 payment_2 = monthly_payment
                 payment_3 = 0
                 payment_4 = 0  # No fourth payment when no IO
@@ -123,14 +157,15 @@ def apr_calc_logic():
                                                                                      payment_1, payment_2, payment_3,
                                                                                      interest_only_period,
                                                                                      pre_existing_policy_value)
-                payment_3 = remaining_balances[-1] + monthly_payment
+                payment_3 = round(remaining_balances[-1] + monthly_payment,2)
 
 
                 #print(remaining_balances)
 
 
-            if life_insurance_required != 't':
+            if life_insurance_required != 'True':
                 insurance_premiums = [0] * row['term']
+                #print(insurance_premiums)
 
 
 
@@ -140,15 +175,24 @@ def apr_calc_logic():
             #print(payment_4)
 
             # Calculate APR
-            calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period, insurance_premiums)
-
+            calculate_apr(system_calculated_apr, lai, payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period, insurance_premiums)
 
 
             # Collect results after processing each row
             payment_results.append({
                 'lai': row['cl_contract'],
                 'net_loan_amount': row['net_loan_amount'],
+                'term': row['term'],
                 'apr': apr,
+                'payment_1': payment_1,
+                'payment_2': payment_2,
+                'payment_3': payment_3,
+                'payment_4': payment_4,
+                'interest_only_period': row['interest_only_period'],
+                'loan_amount': row['loan_amount'],
+                'expected_first_payment_date': row['expected_first_payment_date'],
+                'life_insurance_required':row['life_insurance_required'],
+                'pre_existing_policy_value':row['pre_existing_policy_value'],
                 'borrower_state': row['borrowing_entity_state'],
                 'funded_date': row['funded_date']
             })
@@ -206,53 +250,114 @@ def looker_data_pull(user_selection_lai, user_selection_state, user_selection_st
 
             data_apr = json.loads(result_apr)  # Convert JSON to Python Dict
             df_apr = pd.DataFrame.from_dict(data_apr)
+
             return df_apr
+
         except Exception as e:
             print(f"Error in df_creator_apr: {str(e)}")
             return pd.DataFrame()
 
     # Define the query with direct string formatting for parameters
     query_apr = """
+WITH first_query AS (    
+    SELECT DISTINCT
+        loan.llc_bi__lookupkey__c AS cl_contract, 
+        loan.gross_loan_amount__c AS loan_amount,
+        loan.llc_bi__monthly_payment__c AS monthly_payment, 
+        CAST(NULL AS NUMERIC) AS first_period_payment,
+        loan.amount_financed__c AS net_loan_amount,
+        loan.llc_bi__current_interest_rate__c AS interest_rate, 
+        loan.llc_bi__booked_datetime__c::DATE  AS funded_date,
+        loan.llc_bi__first_payment_date__c AS expected_first_payment_date,  
+        loan.llc_bi__term_months__c AS term,
+        loan.llc_bi__interest_only_months__c AS interest_only_period, 
+        loan.llc_bi__balloon_payment__c AS balloon_payment,
+        account.billingstate AS borrowing_entity_state,
+        CAST(
+            CASE 
+                WHEN loan.life_insurance_required__c = 'No' THEN 'False'
+                WHEN loan.life_insurance_required__c = 'Yes' THEN 'True' 
+                WHEN loan.life_insurance_required__c IS NULL THEN 'False'
+            END
+        AS TEXT) AS life_insurance_required,
+
+        cast (0 AS NUMERIC) AS pre_existing_policy_value,
+        ROUND(loan.llc_bi__apr__c,2) AS system_calculated_apr
+    FROM ncino.llc_bi__loan__c loan
+    LEFT JOIN ncino.llc_bi__legal_entities__c lc ON loan.sfid = lc.LLC_BI__Loan__c
+    LEFT JOIN ncino.account account ON lc.LLC_BI__Account__c = account.sfid
+    WHERE loan.llc_bi__stage__c = 'Booked'
+    AND lc.llc_bi__borrower_type__c = 'Borrower'
+),
+
+second_query AS (
     SELECT DISTINCT 
-    b.cl_contract,
-    b.loan_amount,
-    b.monthly_payment,
-    b.first_period_payment,
-    b.net_loan_amount,
-    b.interest_rate,
-    sf.closedate as funded_date,
-    b.expected_first_payment_date,
-    b.term,
-    b.interest_only_period,
-    b.origination_fee,
-    b.documentation_fee,
-    b.balloon_payment,
-    add_borrower.state as borrowing_entity_state,
-    sf.Financing_Type__c,
-    b.life_insurance_required,
-    b.pre_existing_policy_value
+        b.cl_contract,
+        b.loan_amount,
+        b.monthly_payment,
+        b.first_period_payment,
+        b.net_loan_amount,
+        b.interest_rate,
+        sf.closedate::DATE AS funded_date,
+        b.expected_first_payment_date,
+        b.term,
+        b.interest_only_period,
+        b.balloon_payment,
+        add_borrower.state AS borrowing_entity_state,
+        CAST(
+            CASE 
+                WHEN b.life_insurance_required = 'False' THEN 'False'
+                WHEN b.life_insurance_required = 'True' THEN 'True' 
+                WHEN b.life_insurance_required IS NULL THEN 'False'
+            END 
+        AS TEXT) AS life_insurance_required,
+
+        b.pre_existing_policy_value,
+        CAST(NULL AS NUMERIC) AS system_calculated_apr
     FROM loans b 
     LEFT JOIN salesforce.opportunity sf ON b.opportunity_id = sf.sfid
     LEFT JOIN borrower_entity_ownerships d ON b.legal_entity_id = d.legal_entity_id
-    LEFT JOIN addresses add_borrower ON d.legal_entity_id = add_borrower.addressable_id AND add_borrower.addressable_type = 'LegalEntity'
-    WHERE 1=1
-    AND sf.loan_product__c = 'Core'
+    LEFT JOIN addresses add_borrower 
+        ON d.legal_entity_id = add_borrower.addressable_id 
+        AND add_borrower.addressable_type = 'LegalEntity'
+    WHERE sf.loan_product__c = 'Core'
     AND b.stage = '17'
+)
+
+SELECT 
+    COALESCE(b.cl_contract, a.cl_contract) AS cl_contract,
+    COALESCE(b.loan_amount, a.loan_amount) AS loan_amount,
+    COALESCE(b.monthly_payment, a.monthly_payment) AS monthly_payment,
+    COALESCE(b.first_period_payment, a.first_period_payment) AS first_period_payment,
+    COALESCE(b.net_loan_amount, a.net_loan_amount) AS net_loan_amount,
+    COALESCE(b.interest_rate, a.interest_rate) AS interest_rate,
+    COALESCE(b.funded_date::DATE , a.funded_date::DATE) AS funded_date,
+    COALESCE(b.expected_first_payment_date, a.expected_first_payment_date) AS expected_first_payment_date,
+    COALESCE(b.term, a.term) AS term,
+    COALESCE(b.interest_only_period, a.interest_only_period) AS interest_only_period,
+    COALESCE(b.balloon_payment, a.balloon_payment) AS balloon_payment,
+    COALESCE(b.borrowing_entity_state, a.borrowing_entity_state) AS borrowing_entity_state,
+    COALESCE(b.life_insurance_required, a.life_insurance_required) AS life_insurance_required,
+    COALESCE(b.pre_existing_policy_value,a.pre_existing_policy_value, 0) AS pre_existing_policy_value,
+    COALESCE(a.system_calculated_apr, b.system_calculated_apr) AS system_calculated_apr
+FROM first_query a 
+left join  second_query b ON b.cl_contract = a.cl_contract
+where 1=1
     """
 
     # Dynamically add conditions based on user input
     if user_selection_state !="" and user_selection_state != 'Select State':
-        query_apr += f" AND add_borrower.state = '{user_selection_state}'"
+        query_apr += f" AND COALESCE(a.borrowing_entity_state, b.borrowing_entity_state) = '{user_selection_state}'"
         if user_selection_state =='CA':
             query_apr += f"AND b.net_loan_amount < 500001"
         elif user_selection_state =='NY':
             query_apr += f"AND b.net_loan_amount < 2500001"
 
     if user_selection_start_date !="" and user_selection_end_date !="":
-        query_apr += f" AND sf.closedate BETWEEN '{user_selection_start_date}' AND '{user_selection_end_date}'"
+        query_apr += f" AND COALESCE(a.funded_date,b.funded_date) BETWEEN'{user_selection_start_date}' and '{user_selection_end_date}'"
 
     if user_selection_lai !="":
-        query_apr += f" AND b.cl_contract LIKE '%{user_selection_lai}'"
+        query_apr += f" AND COALESCE(a.cl_contract,b.cl_contract) LIKE '%{user_selection_lai}'"
 
     # Manually substitute user input into the query string (ensure input is sanitized)
     query_apr = query_apr.format(
@@ -262,6 +367,7 @@ def looker_data_pull(user_selection_lai, user_selection_state, user_selection_st
         user_selection_end=user_selection_end_date if user_selection_end_date else ''
     )
 
+    print(query_apr)
     return df_creator_apr(query_apr)
 
 
@@ -281,8 +387,7 @@ def calculate_payment_schedule(funding_date, expected_first_payment_date, term, 
 
     #print(payment_periods[0])
 
-
-def calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods,interest_only_period, insurance_premiums):
+def calculate_apr(system_calculated_apr, lai, payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period, insurance_premiums):
     global apr
     """Calculate APR by solving for the discount rate."""
 
@@ -364,6 +469,11 @@ def calculate_apr(payment_1, payment_2, payment_3, payment_4, amount_financed, p
     apr_annual = max(apr_monthly_rate * 12 * 100, 0)  # Ensure non-negative APR
     apr = round(apr_annual, 2)
 
+    if lai.startswith('LAI-0005'):
+        apr = system_calculated_apr
+    else:
+        apr
+
     return apr
 
 
@@ -396,7 +506,10 @@ def round_up_to_nearest_tier(amount):
     for tier in sorted(insurance_premium_table.keys()):
         if amount <= tier:
             return tier, insurance_premium_table[tier]
-    return tier
+
+        # If amount exceeds max tier, return highest tier and its premium
+    max_tier = max(insurance_premium_table.keys())
+    return max_tier, insurance_premium_table[max_tier]
 
 
 def calculate_remaining_balance(loan_amount, interest_rate, payment_schedule, payment_1, payment_2, payment_3,

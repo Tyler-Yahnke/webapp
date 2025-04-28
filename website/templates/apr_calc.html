@@ -31,13 +31,35 @@
 
 
 
-        .form-container{
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-            background-color: rgba(200, 200, 200, 0.8);
-            border-radius: 10px;
-            padding: 10px;
-        }
+        ./* Make sure the outermost parent allows enough width */
+.container, .content, body {
+    width: 100%; /* Ensure it spans the full width */
+    max-width: 1400px; /* Adjust this if needed */
+    margin: 0 auto; /* Centers the content */
+}
+
+/* Make the grey box take the full width of its parent */
+.form-container {
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    background-color: rgba(200, 200, 200, 0.8);
+    border-radius: 10px;
+    padding: 10px;
+    width: 100%;
+    max-width: 1300px; /* Adjust width as needed */
+    margin: 0 auto;
+}
+
+/* Ensure table is fully inside its container */
+.form-ratecard {
+    width: 100%;
+    overflow-x: auto; /* Allow scrolling if table gets too big */
+}
+
+table {
+    width: 100%; /* Ensure it stretches fully */
+}
+
 
 
         .form-container-buttons {
@@ -174,8 +196,18 @@
         <th>LAI</th>
         <th>APR</th>
           <th>Borrower State</th>
+          <th>Term</th>
           <th>Funded Date</th>
+          <th>First Payment</th>
+          <th>Loan Amount</th>
           <th>Net Loan Amount</th>
+          <th>IO Period</th>
+          <th>Payment 1</th>
+          <th>Payment 2</th>
+          <th>Payment 3</th>
+          <th>Payment 4</th>
+          <th>Life Insurance</th>
+          <th>Pre Existing Life</th>
 
       </tr>
     </thead>
@@ -185,16 +217,36 @@
         <td>{{ row['lai'] }}</td>
         <td>{{ row['apr'] }}</td>
         <td>{{ row['borrower_state'] }}</td>
+          <td>{{ row['term'] }}</td>
         <td>{{ row['funded_date'] }}</td>
-        <td>{{ row['net_loan_amount'] }}</td>
+          <td>{{ row['expected_first_payment_date'] }}</td>
+          <td>{{ row['loan_amount'] }}</td>
+          <td>{{ row['net_loan_amount'] }}</td>
+        <td>{{ row['interest_only_period'] }}</td>
+             <td>{{ row['payment_1'] }}</td>
+          <td>{{ row['payment_2'] }}</td>
+          <td>{{ row['payment_3'] }}</td>
+          <td>{{ row['payment_4'] }}</td>
+          <td>{{ row['life_insurance_required'] }}</td>
+          <td>{{ row['pre_existing_policy_value'] }}</td>
+
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
+         <div class="container-margin-bottom"></div>
+    <div class="footer">
+        Created and Managed by Tyler Yahnke
+        <br>
+        &copy; 2025 ApplePie Capital, Version 5.0
+    </div>
+
+
 </body>
 
 </html>
+
 
 {% endblock %}

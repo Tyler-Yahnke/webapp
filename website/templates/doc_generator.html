@@ -6,7 +6,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Document Generator</title>
+    <title>NOD Letter Generator</title>
     <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
     <style>
         .modern-heading {
@@ -56,37 +56,38 @@
 </head>
 
 <body>
-    <h1 class="modern-heading">Document Generator</h1>
-
-    <div class="form-container">
-            <h3>Instructions</h3>
-            <label>- Step 1: Create an Excel spreadsheet and add each value you want on the letter into a column. For example: Name, DOB, Address</label>
-            <label>- Make the first column a unique identifier for each letter. The document will be saved using this identifier</label>
-            <label>- Step 2: Open the Word document you want to input the data into</label>
-            <label>- Step 3: Insert the column name from the Excel spreadsheet into the location you want it to show surrounded by {}.</label>
-            <label>- For example: Hello my name is {Name}. I live on {Address}. Note: These are case sensitive so they must match exactly how they show in the spreadsheet</label>
-            <label>- Step 4: Save the Excel doc(.xlsx) and Word doc(.docx) to your computer</label>
-            <label>- Step 5: Click the Upload Excel doc button below and select the Excel doc from your computer</label>
-            <label>- Step 6: Click the Upload Word doc button below and select the Word doc from your computer</label>
-            <label>- Step 7: Click the Generator Docs Button. The documents will be downloaded as a Zip file to your computer</label>
-    </div>
+    <h1 class="modern-heading">NOD Letter Generator</h1>
 
     <div class="form-container">
         <form method="POST" enctype="multipart/form-data">
-            <label>Select Excel Document:</label>
-            <input type="file" name="excel-file" accept=".xlsx">
+
+            <label>Enter the LAI and click Generate Doc to generate a Notice of Default (NOD):</label>
+
             <br>
-            <label>Select Word Document:</label>
-            <input type="file" name="word-file" accept=".docx">
+
+            <label>LAI-</label>
+        <input type="text" id="lai" name="lai" value="{{ previous_data.lai if previous_data.lai != '' else '' }}">
             <br>
-            <input type="submit" name='generate_docs' class="btn btn-primary" value="Generate Docs">
+            <label>NOD Type</label>
+            <select name="nod_type">
+                <option value="Make Selection" {% if previous_data.nod_type == 'Make Selection' %}selected{% endif %}>Make Selection</option>
+                <option value="Covenant Default" {% if previous_data.nod_type == 'Covenant Default' %}selected{% endif %}>Covenant Default</option>
+                <option value="Payment Default" {% if previous_data.nod_type == 'Payment Default' %}selected{% endif %}>Payment Default</option>
+            </select>
+            <br>
+            <br>
+            <br>
+            <label>Note: The NOD should ALWAYS be verified by the PM prior to being sent to the customer.</label>
+            <br>
+            <input type="submit" name='generate_docs' class="btn btn-primary" value="Generate Doc">
         </form>
+
 
     <div class="container-margin-bottom"></div>
     <div class="footer">
         Created and Managed by Tyler Yahnke
         <br>
-        &copy; 2024 ApplePie Capital, Version 4.0
+        &copy; 2025 ApplePie Capital, Version 5.0
     </div>
 
 
