@@ -337,6 +337,12 @@ def current_credit_policy():
     base_spread = round(
         float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp]), 4)
 
+    if userselection_brand=='Casago' and userselection_pricing=='Cash Flow':
+        print(base_spread)
+        base_spread = base_spread + 1
+        print(base_spread)
+    else:
+        pass
 
     # final interest rate
     final_spread = round(base_spread + float(swap_rate), 4)
