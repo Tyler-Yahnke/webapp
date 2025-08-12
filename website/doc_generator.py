@@ -65,7 +65,8 @@ def doc_generation():
 
 
             query = f"""
-            select distinct e.id,b.business_name,
+            select distinct e.id,
+            b.business_name,
             b.cl_contract,
             sf.closedate as funded_date,
             b.Interest_rate,
@@ -81,8 +82,7 @@ def doc_generation():
             add_guarantor.address1 as guarantor_address,
             add_guarantor.city as guarantor_city,
             add_guarantor.state as guarantor_state, 
-            add_guarantor.zip_code as guarantor_zip_code,
-            pm.portfolio_manager
+            add_guarantor.zip_code as guarantor_zip_code
 
             from 
                 loans b 
@@ -100,12 +100,6 @@ def doc_generation():
                 salesforce.opportunity sf ON b.opportunity_id = sf.sfid
             LEFT JOIN
                 salesforce.user u ON sf.ownerid = u.sfid
-            LEFT JOIN
-            crada.portfolio_manager pm ON u.name = pm.relationship_manager
-            LEFT JOIN
-                periodic_financial_reviews a ON a.deal_id = b.deal_id
-            LEFT JOIN
-                loan_documents c ON c.periodic_financial_review_id = a.id
 
             where 1=1
             AND b.cl_contract LIKE '%{user_selection_lai}'
@@ -126,8 +120,6 @@ def doc_generation():
             guarantor_city,
             guarantor_state, 
             guarantor_zip_code,
-            a.periodicity_type,
-            pm.portfolio_manager,
             sf.closedate
             """
 
@@ -211,20 +203,22 @@ def doc_generation():
             #Ownership Structure Change
             #covenant = 'Failure to provide notice of change in ownership structure (Section: 4.03(d))'
 
+            #Annual Monitoring
+            covenant = 'Failure to provide year-end financial statements (Section: 4.01(a)(i))'
+
             pm_dict = {
-                "Amy Hays": {
+                "Matin Torabian": {
                     "title": "Portfolio Manager",
-                    "phone_number": "(415) 688-4404",
-                    "email": "Amy.Hays@applepiecapital.com"
+                    "email": "Matin.Torabian@applepiecapital.com"
                 },
                 "Destine Alexander": {
-                    "title": "Portfolio Servicing Analyst",
+                    "title": "Portfolio Manager",
                     "phone_number": "(415) 539-1640",
                     "email": "Destine.Alexander@applepiecapital.com"
                 },
                 "Christine Martinski": {
-                    "title": "Sr. Portfolio Manager",
-                    "phone_number": "(407)-473-5539",
+                    "title": "Portfolio Manager",
+                    "phone_number": "(415) 930-4450",
                     "email": "Christine.Martinski@applepiecapital.com"
                 },
                 "Katie Spencer": {
@@ -234,13 +228,13 @@ def doc_generation():
                 }
             }
 
-            portfolio_manager = platform_df['portfolio_manager'].iloc[0]
+            #portfolio_manager = platform_df['portfolio_manager'].iloc[0]
 
             pm_signature = f"""
-            {platform_df['portfolio_manager'].iloc[0]}|{pm_dict.get(portfolio_manager, {}).get('title', "")}
+            Christine Martinski|Portfolio Manager
             ApplePie Capital Mailing 
             Address: 548 Market Street, PMB 54105, San Francisco, CA 94104 - 5401
-            P: {pm_dict.get(portfolio_manager, {}).get('phone_number', "1.800.720.0241")}|{pm_dict.get(portfolio_manager, {}).get('email', "Financals@applepiecapital.com")}
+            E: christine.martinski@applepiecapital.com|P:(415) 930-4450
         """
 
             borrower_signature = f"""{platform_df['business_name'].iloc[0]}
