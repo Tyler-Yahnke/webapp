@@ -338,8 +338,8 @@ def current_credit_policy():
         float(temp_base_spread) + float(temp_embedded) + float(down_payment_fee_dict[userselection_dp]), 4)
 
     if userselection_brand=='Casago' and userselection_pricing=='Cash Flow':
-        print(base_spread)
         base_spread = base_spread + 1
+        temp_base_spread = base_spread
         print(base_spread)
     else:
         pass
