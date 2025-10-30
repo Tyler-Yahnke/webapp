@@ -160,6 +160,10 @@ def home():
             log_selections()
             return render_template("home.html", user=current_user, results=results, rate_card_table=rate_card_table, previous_data=previous_data)
 
+        if userselection_brand in ('Image Studios', 'My Salon Suite', 'Phenix', 'Salons by JC', 'Sola Salons') and userselection_pricing == 'Pro Forma':
+            userselection_pricing = 'Cash Flow'
+            userselection_grade ='A'
+
 
         if recommit == 'Y':
 
@@ -294,7 +298,6 @@ def bridge_loan_func():
     'loan_buyer_brand_fee': "0.00%",
     'rate_type': 'Fixed'}
     return(bridge_results)
-
 
 def current_credit_policy():
     print('new process')
