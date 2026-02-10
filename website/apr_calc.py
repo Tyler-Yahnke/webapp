@@ -87,29 +87,28 @@ def apr_calc_logic():
             balloon_payment = row['balloon_payment']
             loan_amount = row['loan_amount']
             monthly_payment = row['monthly_payment']
-            if row['first_period_payment'] is None:
 
-                #new way of calculating stub period
-                #expected_standard_first_payment_date = funding_date.replace(day=15) + pd.DateOffset(months=1)
-                #extra_days = (expected_standard_first_payment_date - funding_date).days
 
-                #old way of calculating stub period
-                start_day = min(funding_date.day, 30)
-                end_day = min(expected_first_payment_date.day, 30)
-                extra_days = ((expected_first_payment_date.year - funding_date.year) * 360 +
-                              (expected_first_payment_date.month - funding_date.month) * 30 +
-                              (end_day - start_day)) - 30  # Subtract 30 to get only the extra days
+            #new way of calculating stub period
+            #expected_standard_first_payment_date = funding_date.replace(day=15) + pd.DateOffset(months=1)
+            #extra_days = (expected_standard_first_payment_date - funding_date).days
 
-                #print(extra_days)
+            #old way of calculating stub period
+            start_day = min(funding_date.day, 30)
+            end_day = min(expected_first_payment_date.day, 30)
+            extra_days = ((expected_first_payment_date.year - funding_date.year) * 360 +
+                          (expected_first_payment_date.month - funding_date.month) * 30 +
+                          (end_day - start_day)) - 30  # Subtract 30 to get only the extra days
 
-                # Calculate daily interest rate
-                daily_interest_rate = row['interest_rate'] / 100 / 360
+            #print(extra_days)
 
-                # Calculate additional interest due to the delayed first payment
-                first_period_payment = round(loan_amount * daily_interest_rate * extra_days,2)
+            # Calculate daily interest rate
+            daily_interest_rate = row['interest_rate'] / 100 / 360
 
-            else:
-                first_period_payment = row['first_period_payment']
+            # Calculate additional interest due to the delayed first payment
+            first_period_payment = round(loan_amount * daily_interest_rate * extra_days,2)
+
+
 
             life_insurance_required = row['life_insurance_required']
             pre_existing_policy_value = row['pre_existing_policy_value']
@@ -166,7 +165,6 @@ def apr_calc_logic():
             if life_insurance_required != 'True':
                 insurance_premiums = [0] * row['term']
                 #print(insurance_premiums)
-
 
 
             #print(payment_1)
@@ -288,6 +286,9 @@ WITH first_query AS (
     LEFT JOIN ncino.account account ON lc.LLC_BI__Account__c = account.sfid
     WHERE loan.llc_bi__stage__c = 'Booked'
     AND lc.llc_bi__borrower_type__c = 'Borrower'
+    and llc_bi__is_modification__c = '0'
+    AND loan.full_product_name__C like ('Core - Commercial - C&I')
+    AND loan.llc_bi__lookupkey__c like 'LAI%' 
 ),
 
 second_query AS (
@@ -347,14 +348,14 @@ where 1=1
 
     # Dynamically add conditions based on user input
     if user_selection_state !="" and user_selection_state != 'Select State':
-        query_apr += f" AND COALESCE(a.borrowing_entity_state, b.borrowing_entity_state) = '{user_selection_state}'"
+        query_apr += f" AND (a.borrowing_entity_state = '{user_selection_state}' OR b.borrowing_entity_state = '{user_selection_state}')"
         if user_selection_state =='CA':
-            query_apr += f"AND b.net_loan_amount < 500001"
+            query_apr += f"AND (b.net_loan_amount < 500001 OR a.net_loan_amount < 500001)"
         elif user_selection_state =='NY':
-            query_apr += f"AND b.net_loan_amount < 2500001"
+            query_apr += f"AND b.net_loan_amount < 2500001 OR a.net_loan_amount < 2500001)"
 
     if user_selection_start_date !="" and user_selection_end_date !="":
-        query_apr += f" AND COALESCE(a.funded_date,b.funded_date) BETWEEN'{user_selection_start_date}' and '{user_selection_end_date}'"
+        query_apr += f" AND (b.funded_date BETWEEN'{user_selection_start_date}' and '{user_selection_end_date}' OR a.funded_date BETWEEN'{user_selection_start_date}' and '{user_selection_end_date}')"
 
     if user_selection_lai !="":
         query_apr += f" AND COALESCE(a.cl_contract,b.cl_contract) LIKE '%{user_selection_lai}'"
@@ -367,7 +368,7 @@ where 1=1
         user_selection_end=user_selection_end_date if user_selection_end_date else ''
     )
 
-    print(query_apr)
+    #print(query_apr)
     return df_creator_apr(query_apr)
 
 
@@ -469,10 +470,10 @@ def calculate_apr(system_calculated_apr, lai, payment_1, payment_2, payment_3, p
     apr_annual = max(apr_monthly_rate * 12 * 100, 0)  # Ensure non-negative APR
     apr = round(apr_annual, 2)
 
-    if lai.startswith('LAI-0005'):
-        apr = system_calculated_apr
-    else:
-        apr
+    #if lai.startswith('LAI-0005'):
+      #  apr = system_calculated_apr
+   # else:
+   #     apr
 
     return apr
 
