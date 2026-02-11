@@ -150,9 +150,26 @@ table {
           <label>LAI-</label>
 <input type="text" id="lai" name="lai" value="{{ previous_data.lai if previous_data.lai != '' else '' }}">
 
- <br>
- <br>
+          <br>
 
+<label for="stub_payment">First Payment Amount:</label>
+<input type="text" id="stub_payment" name="stub_payment" value="{{ previous_data.stub_payment if previous_data.stub_payment != '' else '' }}">
+<br>
+
+<label for="io_payments">IO Payment Amount (if applicable):</label>
+<input type="text" id="io_payments" name="io_payments" value="{{ previous_data.io_payments if previous_data.io_payments != '' else '' }}">
+<br>
+
+<label for="regular_payment">Regular Payment Amount:</label>
+<input type="text" id="regular_payment" name="regular_payment" value="{{ previous_data.regular_payment if previous_data.regular_payment != '' else '' }}">
+<br>
+
+<label for="balloon_payment">Final Payment Amount:</label>
+<input type="text" id="balloon_payment" name="balloon_payment" value="{{ previous_data.balloon_payment if previous_data.balloon_payment != '' else '' }}">
+
+ <br>
+ <br>
+ <!-- <p>
 <label><b>Calculate APR for a Group of Funded Loans</b></label>
 <br>
 <label>State Disclosures:</label>
@@ -176,9 +193,10 @@ table {
 <input type="date" id="end_date" name="end_date"
        value="{{ previous_data.end_date if previous_data.end_date != '' else '' }}">
 
+<br>
+<br>
+</p> -->
 
-<br>
-<br>
         <input type="submit" class="btn btn-primary" name='submit' value="Submit" onclick="submitForm()" style="font-size: 20px;">
 
             <input type="submit" class="btn btn-primary" name="download" value="Download File" style="font-size: 20px;">
@@ -200,12 +218,14 @@ table {
           <th>Funded Date</th>
           <th>First Payment</th>
           <th>Loan Amount</th>
-          <th>Net Loan Amount</th>
+          <th>Amount Financed</th>
           <th>IO Period</th>
-          <th>Payment 1</th>
-          <th>Payment 2</th>
-          <th>Payment 3</th>
-          <th>Payment 4</th>
+          <!-- <p>
+          <th>First Payment Amount</th>
+          <th>IO Payment Amount</th>
+          <th>Regular Payment Amount</th>
+          <th>Final Payment Amount</th>
+          </p> -->
           <th>Life Insurance</th>
           <th>Pre Existing Life</th>
 
@@ -223,10 +243,13 @@ table {
           <td>{{ row['loan_amount'] }}</td>
           <td>{{ row['net_loan_amount'] }}</td>
         <td>{{ row['interest_only_period'] }}</td>
+          <!-- <p>
              <td>{{ row['payment_1'] }}</td>
           <td>{{ row['payment_2'] }}</td>
           <td>{{ row['payment_3'] }}</td>
           <td>{{ row['payment_4'] }}</td>
+          </p> -->
+
           <td>{{ row['life_insurance_required'] }}</td>
           <td>{{ row['pre_existing_policy_value'] }}</td>
 
