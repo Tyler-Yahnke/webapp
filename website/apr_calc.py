@@ -8,8 +8,7 @@ import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from scipy.optimize import fsolve
-import numpy as np
-import os
+from pathlib import Path
 
 
 apr_calc = Blueprint('apr_calc', __name__)
@@ -23,7 +22,7 @@ def apr_calc_logic():
     print('apr_calc')
 
     data = {'lai': [''],
-                'net_loan_amount': [''],
+                'amount_financed': [''],
             'term': [''],
                 'apr': [''],
                 'payment_1': [''],
@@ -40,48 +39,44 @@ def apr_calc_logic():
             }
     apr_table = pd.DataFrame(data)
 
-    previous_data = {}
 
     if request.method == 'POST':
 
-        user_selection_lai = request.form.get('lai')
-        user_selection_state = request.form.get('state')
-        user_selection_start_date = request.form.get('start_date')
-        user_selection_end_date = request.form.get('end_date')
-        user_selection_stub_payment = request.form.get('stub_payment')
-        user_selection_io_payments = request.form.get('io_payments')
-        user_selection_regular_payment = request.form.get('regular_payment')
-        user_selection_balloon_payment = request.form.get('balloon_payment')
 
+        # Opening json and creating variables for the payments
+        print('test')
+        uploaded_file = request.files.get("json_file")
+        print('test')
+        if not uploaded_file or uploaded_file.filename == "":
+            print('test')
+            flash("No JSON file uploaded", category="error")
+            return render_template("apr_calc.html", user=current_user, apr_table=apr_table)
 
+        try:
+            uploaded_file.stream.seek(0)  # make sure we're at start
+            json_data = json.load(uploaded_file)
+        except Exception as e:
+            flash(f"Invalid JSON file: {e}", category="error")
+            return render_template("apr_calc.html", user=current_user, apr_table=apr_table)
 
+        # build these once
+        df_amort = pd.DataFrame(json_data.get("amortizationRecords", []))
+        df_disclosure = pd.DataFrame([json_data.get("disclosure", {})])
+        print(df_disclosure)
 
-        previous_data = {
-            'lai': user_selection_lai,
-            'state': user_selection_state,
-            'start_date': user_selection_start_date,
-            'end_date': user_selection_end_date,
-            'stub_payment': user_selection_stub_payment,
-            'io_payments': user_selection_io_payments,
-            'regular_payment': user_selection_regular_payment,
-            'balloon_payment': user_selection_balloon_payment
-        }
+        payments = df_amort.set_index("index")["payment"].to_dict()
 
-        #print(previous_data)
+        payment_2_json = float(payments.get(2, 0))
+        principal_balance_json = json_data["disclosure"]["principalBalance"]
 
-        if user_selection_lai=="" and user_selection_state =="Select State" and user_selection_start_date=="" and user_selection_end_date=="":
-            flash('At least one search criteria must be given', category='error')
-            return render_template("apr_calc.html", user=current_user, apr_table=apr_table,
-                                   previous_data=previous_data)
 
         # Call looker_data_pull and capture the result
-        platform_apr_df = looker_data_pull(user_selection_lai, user_selection_state, user_selection_start_date,
-                                           user_selection_end_date)
+        platform_apr_df = looker_data_pull(principal_balance_json,payment_2_json)
+
         if platform_apr_df.empty:
             flash('No Results Found. Verify Search Criteria', category='error')
             print("No results were added to platform_apr_df.empty")
-            return render_template("apr_calc.html", user=current_user, apr_table=apr_table,
-                                   previous_data=previous_data)
+            return render_template("apr_calc.html", user=current_user, apr_table=apr_table)
             return
 
         # Initialize payment_results before starting the loop
@@ -93,7 +88,7 @@ def apr_calc_logic():
             funding_date = pd.to_datetime(row['funded_date'])
             expected_first_payment_date = pd.to_datetime(row['expected_first_payment_date'])
             term = int(row['term']) if pd.notna(row['term']) else 0
-            amount_financed = row['net_loan_amount']
+            amount_financed = row['amount_financed']
             interest_rate = float(row['interest_rate']) / 100
             balloon_payment = row['balloon_payment']
             loan_amount = row['loan_amount']
@@ -131,75 +126,63 @@ def apr_calc_logic():
 
 
 
-            # Determine payments dynamically
-            if row['interest_only_period'] > 0:
-                #payment_1 = (loan_amount * (interest_rate / 12)) + first_period_payment
-                #payment_2 = (loan_amount * (interest_rate / 12))
-               #payment_3 = monthly_payment
-
-                payment_1 = float(user_selection_stub_payment.replace('$', '').replace(',', '') or 0)
-                payment_2 = float(user_selection_io_payments.replace('$', '').replace(',', '') or 0)
-                payment_3 = float(user_selection_regular_payment.replace('$', '').replace(',', '') or 0)
-                payment_4 = float(user_selection_balloon_payment.replace('$', '').replace(',', '') or 0)
-
-                interest_only_period = int((row['interest_only_period'] - 1))
-
-                calculate_payment_schedule(funding_date, expected_first_payment_date, term, lai)
-
-                # Calculate remaining balance after each payment
-               # remaining_balances, insurance_premiums = calculate_remaining_balance(loan_amount, interest_rate,
-                                                                                    # payment_periods,
-                                                                                   #  payment_1, payment_2, payment_3,
-                                                                                    # interest_only_period,
-                                                                                    # pre_existing_policy_value)
-                #payment_4 = remaining_balances[-1] + monthly_payment
 
 
-            else:
-                #payment_1 = monthly_payment + first_period_payment
-                #payment_2 = monthly_payment
-                #payment_3 = 0
-                #payment_4 = 0  # No fourth payment when no IO
 
-                payment_1 = float(user_selection_stub_payment.replace('$', '').replace(',', '') or 0)
-                payment_2 = float(user_selection_regular_payment.replace('$', '').replace(',', '') or 0)
-                payment_3 = float(user_selection_balloon_payment.replace('$', '').replace(',', '') or 0)
-                payment_4 = float(0)
+            # Payment 1 and 2
+            payment_1 = float(payments.get(1, 0))
+            payment_2 = float(payments.get(2, 0))
 
+
+
+            # Payment 3: check if IO period is active
+            if payments.get(2, 0) == payments.get(15, 0):
+                payment_3 = float(payments.get(max(payments.keys()), 0))
+                payment_4 = 0
+
+                payment_2_display = 0
+                payment_3_display = float(payments.get(15, 0))
+                payment_4_display = float(payments.get(max(payments.keys()), 0))
 
                 interest_only_period = int(row['interest_only_period']) if pd.notna(row['interest_only_period']) else 0
 
-                calculate_payment_schedule(funding_date, expected_first_payment_date, term, lai)
+            else:
+                payment_3 = float(payments.get(15, 0))
+                # Payment 4: last payment
+                payment_4 = float(payments.get(max(payments.keys()), 0))
 
-                # Calculate remaining balance after each payment
-                #remaining_balances, insurance_premiums = calculate_remaining_balance(loan_amount, interest_rate,
-                                                                                     #payment_periods,
-                                                                                     #payment_1, payment_2, payment_3,
-                                                                                    # interest_only_period,
-                                                                                     #pre_existing_policy_value)
-                #payment_3 = remaining_balances[-1] + monthly_payment
+                payment_2_display = payments.get(2, 0)
+                payment_3_display = float(payments.get(15, 0))
+                payment_4_display = float(payments.get(max(payments.keys()), 0))
 
+                interest_only_period = int((row['interest_only_period'] - 1))
+
+
+
+            #print(payment_1, payment_2, payment_3, payment_4)
+
+            calculate_payment_schedule(funding_date, expected_first_payment_date, term, lai)
 
             if life_insurance_required != 'True':
                 insurance_premiums = [0] * row['term']
-                #print(insurance_premiums)
-
+                # print(insurance_premiums)
 
 
             # Calculate APR
             calculate_apr(system_calculated_apr, lai, payment_1, payment_2, payment_3, payment_4, amount_financed, payment_periods, interest_only_period, insurance_premiums)
 
 
+
             # Collect results after processing each row
             payment_results.append({
                 'lai': row['cl_contract'],
-                'net_loan_amount': row['net_loan_amount'],
+                'amount_financed': row['amount_financed'],
                 'term': row['term'],
                 'apr': apr,
                 'payment_1': payment_1,
-                'payment_2': payment_2,
-                'payment_3': payment_3,
-                'payment_4': payment_4,
+                'payment_2': payment_2_display,
+                'payment_3': payment_3_display,
+                'payment_4': payment_4_display,
                 'interest_only_period': row['interest_only_period'],
                 'loan_amount': row['loan_amount'],
                 'expected_first_payment_date': row['expected_first_payment_date'],
@@ -226,9 +209,9 @@ def apr_calc_logic():
         if button == 'Download File':
             # Call the download_file function if the button was clicked
             return download_file(payment_results_df)
-        return render_template("apr_calc.html", user=current_user, apr_table=payment_results_df, previous_data=previous_data)
+        return render_template("apr_calc.html", user=current_user, apr_table=payment_results_df)
 
-    return render_template("apr_calc.html", user=current_user, apr_table=apr_table, previous_data=previous_data)
+    return render_template("apr_calc.html", user=current_user, apr_table=apr_table)
 
 
 def download_file(payment_results_df):
@@ -241,7 +224,7 @@ def download_file(payment_results_df):
     # Send the file as a response to the client
     return send_file(output_filename, as_attachment=True)
 
-def looker_data_pull(user_selection_lai, user_selection_state, user_selection_start_date, user_selection_end_date):
+def looker_data_pull(principal_balance_json,payment_2_json):
 
     # Initialize Looker API client
     looker_loc = 'looker.ini'
@@ -269,14 +252,16 @@ def looker_data_pull(user_selection_lai, user_selection_state, user_selection_st
             return pd.DataFrame()
 
     # Define the query with direct string formatting for parameters
+
     query_apr = """
 WITH first_query AS (    
     SELECT DISTINCT
         loan.llc_bi__lookupkey__c AS cl_contract, 
         loan.gross_loan_amount__c AS loan_amount,
-        loan.llc_bi__monthly_payment__c AS monthly_payment, 
         CAST(NULL AS NUMERIC) AS first_period_payment,
-        loan.amount_financed__c AS net_loan_amount,
+        loan.initial_monthly_payment__c AS io_period_payment,
+        loan.llc_bi__monthly_payment__c AS monthly_payment, 
+        loan.amount_financed__c AS amount_financed,
         loan.llc_bi__current_interest_rate__c AS interest_rate, 
         loan.llc_bi__booked_datetime__c::DATE  AS funded_date,
         loan.llc_bi__first_payment_date__c AS expected_first_payment_date,  
@@ -308,9 +293,10 @@ second_query AS (
     SELECT DISTINCT 
         b.cl_contract,
         b.loan_amount,
-        b.monthly_payment,
         b.first_period_payment,
-        b.net_loan_amount,
+        CAST(NULL AS NUMERIC) AS io_period_payment,
+        b.monthly_payment,
+        b.net_loan_amount as amount_financed,
         b.interest_rate,
         sf.closedate::DATE AS funded_date,
         b.expected_first_payment_date,
@@ -341,9 +327,10 @@ second_query AS (
 SELECT 
     COALESCE(b.cl_contract, a.cl_contract) AS cl_contract,
     COALESCE(b.loan_amount, a.loan_amount) AS loan_amount,
-    COALESCE(b.monthly_payment, a.monthly_payment) AS monthly_payment,
     COALESCE(b.first_period_payment, a.first_period_payment) AS first_period_payment,
-    COALESCE(b.net_loan_amount, a.net_loan_amount) AS net_loan_amount,
+    COALESCE(b.io_period_payment,a.io_period_payment) AS io_period_payment,
+    COALESCE(b.monthly_payment, a.monthly_payment) AS monthly_payment,
+    COALESCE(b.amount_financed, a.amount_financed) AS amount_financed,
     COALESCE(b.interest_rate, a.interest_rate) AS interest_rate,
     COALESCE(b.funded_date::DATE , a.funded_date::DATE) AS funded_date,
     COALESCE(b.expected_first_payment_date, a.expected_first_payment_date) AS expected_first_payment_date,
@@ -357,28 +344,14 @@ SELECT
 FROM first_query a 
 left join  second_query b ON b.cl_contract = a.cl_contract
 where 1=1
+and (b.loan_amount = '{principal_balance_json}' OR a.loan_amount='{principal_balance_json}')
+and (b.io_period_payment='{payment_2_json}' OR a.io_period_payment='{payment_2_json}' OR b.monthly_payment='{payment_2_json}' OR a.monthly_payment='{payment_2_json}')
     """
-    '''
-    # Dynamically add conditions based on user input
-   if user_selection_state !="" and user_selection_state != 'Select State':
-        query_apr += f" AND (a.borrowing_entity_state = '{user_selection_state}' OR b.borrowing_entity_state = '{user_selection_state}')"
-        if user_selection_state =='CA':
-            query_apr += f"AND (b.net_loan_amount < 500001 OR a.net_loan_amount < 500001)"
-        elif user_selection_state =='NY':
-            query_apr += f"AND b.net_loan_amount < 2500001 OR a.net_loan_amount < 2500001)"
-
-    if user_selection_start_date !="" and user_selection_end_date !="":
-        query_apr += f" AND (b.funded_date BETWEEN'{user_selection_start_date}' and '{user_selection_end_date}' OR a.funded_date BETWEEN'{user_selection_start_date}' and '{user_selection_end_date}')"
-    '''
-    if user_selection_lai !="":
-        query_apr += f" AND COALESCE(a.cl_contract,b.cl_contract) LIKE '%{user_selection_lai}'"
 
     # Manually substitute user input into the query string (ensure input is sanitized)
     query_apr = query_apr.format(
-        user_selection_lai=user_selection_lai if user_selection_lai else '',
-        user_selection_state=user_selection_state if user_selection_state else '',
-        user_selection_start=user_selection_start_date if user_selection_start_date else '',
-        user_selection_end=user_selection_end_date if user_selection_end_date else ''
+        principal_balance_json=principal_balance_json,
+        payment_2_json=payment_2_json
     )
 
     #print(query_apr)
@@ -493,7 +466,7 @@ def calculate_apr(system_calculated_apr, lai, payment_1, payment_2, payment_3, p
 
     return apr
 
-
+'''
 def round_up_to_nearest_tier(amount):
     global tier
     """Round up to the nearest available insurance tier."""
@@ -607,5 +580,6 @@ def calculate_remaining_balance(loan_amount, interest_rate, payment_schedule, pa
 
     return remaining_balances, insurance_premiums
 
+'''
 
 

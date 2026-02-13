@@ -131,6 +131,38 @@ table {
             font-size: 25px;
             color: #155724; /* Adjust the color as needed */
         }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #d4edda;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            z-index: 9999; /* Ensure the popup appears above other elements */
+        }
+        .spinner {
+            display: block;
+            margin: 0 auto;
+            width: 150px; /* Adjust the size of the spinner as needed */
+            height: 150px;
+            background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZGc5cDFyYmt2d3lnNGRuNzRyNGtvZ2U1YmJwcjRmbndqNTRzOHI5MSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IJNQqqtwmYZHdkdGZM/giphy.gif'); /* Replace 'path/to/spinner.gif' with the path to your spinner image */
+            background-size: cover;
+
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .popup-text {
+            text-align: center;
+            margin-top: 10px;
+            font-family: 'Raleway', sans-serif;
+            font-size: 25px;
+            color: #155724; /* Adjust the color as needed */
+        }
     </style>
 </head>
 
@@ -139,63 +171,32 @@ table {
 <body>
     <h1 class="modern-heading">APR Calculator</h1>
 
+            <div id="popup" class="popup">
+        <div class="spinner"></div>
+        <p class="popup-text">Processing Document...</p>
+    </div>
+
 
  <div class="form-container">
     <div class="form-inputs">
-      <form method="POST">
+
+      <form method="POST"
+      action="{{ url_for('apr_calc.apr_calc_logic') }}"
+      enctype="multipart/form-data"
+      onsubmit="return validateAndShow()">
 
 
-<label for="lai"><b>Calculate APR for Specific Funded Loan</b></label>
+<label><b>Calculate APR for Specific Funded Loan</b></label>
           <br>
-          <label>LAI-</label>
-<input type="text" id="lai" name="lai" value="{{ previous_data.lai if previous_data.lai != '' else '' }}">
 
-          <br>
 
-<label for="stub_payment">First Payment Amount:</label>
-<input type="text" id="stub_payment" name="stub_payment" value="{{ previous_data.stub_payment if previous_data.stub_payment != '' else '' }}">
-<br>
 
-<label for="io_payments">IO Payment Amount (if applicable):</label>
-<input type="text" id="io_payments" name="io_payments" value="{{ previous_data.io_payments if previous_data.io_payments != '' else '' }}">
-<br>
-
-<label for="regular_payment">Regular Payment Amount:</label>
-<input type="text" id="regular_payment" name="regular_payment" value="{{ previous_data.regular_payment if previous_data.regular_payment != '' else '' }}">
-<br>
-
-<label for="balloon_payment">Final Payment Amount:</label>
-<input type="text" id="balloon_payment" name="balloon_payment" value="{{ previous_data.balloon_payment if previous_data.balloon_payment != '' else '' }}">
+    <label>Upload JSON File:</label>
+    <input type="file" id="json_file" name="json_file" accept=".json">
 
  <br>
  <br>
- <!-- <p>
-<label><b>Calculate APR for a Group of Funded Loans</b></label>
-<br>
-<label>State Disclosures:</label>
-           <br>
-<select name="state" id="state">
-    <option value="Select State" {% if previous_data.state == 'Select State' %}selected{% endif %}>Select State</option>
-    <option value="CA" {% if previous_data.state == 'CA' %}selected{% endif %}>CA</option>
-    <option value="NY" {% if previous_data.state == 'NY' %}selected{% endif %}>NY</option>
-</select>
-<br>
 
-<br>
-<label>Funded Date Range</label>
-<br>
-<label for="start_date">Start Date:</label>
-<input type="date" id="start_date" name="start_date"
-       value="{{ previous_data.start_date if previous_data.start_date != '' else '' }}">
-<br>
-
-<label for="end_date">End Date:</label>
-<input type="date" id="end_date" name="end_date"
-       value="{{ previous_data.end_date if previous_data.end_date != '' else '' }}">
-
-<br>
-<br>
-</p> -->
 
         <input type="submit" class="btn btn-primary" name='submit' value="Submit" onclick="submitForm()" style="font-size: 20px;">
 
@@ -220,12 +221,10 @@ table {
           <th>Loan Amount</th>
           <th>Amount Financed</th>
           <th>IO Period</th>
-          <!-- <p>
           <th>First Payment Amount</th>
           <th>IO Payment Amount</th>
           <th>Regular Payment Amount</th>
           <th>Final Payment Amount</th>
-          </p> -->
           <th>Life Insurance</th>
           <th>Pre Existing Life</th>
 
@@ -241,14 +240,14 @@ table {
         <td>{{ row['funded_date'] }}</td>
           <td>{{ row['expected_first_payment_date'] }}</td>
           <td>{{ row['loan_amount'] }}</td>
-          <td>{{ row['net_loan_amount'] }}</td>
+          <td>{{ row['amount_financed'] }}</td>
         <td>{{ row['interest_only_period'] }}</td>
-          <!-- <p>
+
              <td>{{ row['payment_1'] }}</td>
           <td>{{ row['payment_2'] }}</td>
           <td>{{ row['payment_3'] }}</td>
           <td>{{ row['payment_4'] }}</td>
-          </p> -->
+
 
           <td>{{ row['life_insurance_required'] }}</td>
           <td>{{ row['pre_existing_policy_value'] }}</td>
@@ -266,6 +265,62 @@ table {
         &copy; 2025 ApplePie Capital, Version 5.0
     </div>
 
+
+
+     <script>
+    function validateAndShow() {
+        // Call validateFileSize to check file size
+        var isValid = validateFileSize();
+        // If file size is valid, show message
+
+        // Return the validation result
+        return isValid;
+    }
+
+    function validateFileSize() {
+        var fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length > 0) {
+            var fileSize = fileInput.files[0].size;
+            if (fileSize > 1048576) { // 1 MB in bytes
+                alert('File size exceeds 1MB limit. Please copy and paste CM details into new word doc. Save word doc and re-upload.');
+                return false; // Prevent form submission
+            }
+        }
+        console.log('File size within limit.');
+        return true; // Allow form submission
+    }
+</script>
+
+<script>
+        function validateAndShow() {
+            // Call validateFileSize to check file size
+            var isValid = validateFileSize();
+            // If file size is valid, show the popup
+            if (isValid) {
+                showPopup();
+            }
+            // Return the validation result
+            return isValid;
+        }
+
+        function showPopup() {
+            var popup = document.getElementById('popup');
+            popup.style.display = 'block';
+        }
+
+        function validateFileSize() {
+            var json_file = document.getElementById('json_file');
+            if (json_file.files.length > 0) {
+                var fileSize = json_file.files[0].size;
+                if (fileSize > 1048576) { // 1 MB in bytes
+                    alert('File size exceeds 1MB limit');
+                    return false; // Prevent form submission
+                }
+            }
+            console.log('File size within limit.');
+            return true; // Allow form submission
+        }
+    </script>
 
 </body>
 
