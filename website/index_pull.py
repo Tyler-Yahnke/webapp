@@ -12,9 +12,9 @@ def index_rate_updates():
     # Connect to the database
     connection = pymysql.connect(
         host='awseb-e-rvvktpucyf-stack-awsebrdsdatabase-ijbluxt9ye2s.cavhriuewzv4.us-east-1.rds.amazonaws.com',
-        user='ebroot',
-        password='Yamaha189!',
-        database='ebdb',
+        user='',
+        password=',
+        database='',
         cursorclass=pymysql.cursors.DictCursor  # Optional: Return results as dictionaries
     )
 
