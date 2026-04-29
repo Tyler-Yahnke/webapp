@@ -1,12 +1,3 @@
 {
-            "type": "service_account",
-            "project_id": "python-rate-sheet",
-            "private_key_id": "dd51fec6c0a1a2eb4bc4d42d17dac22c1c7ba850",
-            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCO7viLzuf1f9Ki\npGKuW2oXSlFG5K7sV79hz67dQz40X4SxpY+5eCGZxnC1WmC/q9DcCTjkAm6pG1oy\n5fQ7tjD8YUvHAQfO3SGt7IeveepQU8Kj9/GkW7y81cFxg3vZx54oZsjZMTjKmcH7\nBCz7leTON2Zxah8ZpYSzRrNeCgx8cGOh2VFGcbu6jDama5NRGjYBDRTZOz5UHgOo\nC43/kWeZu/cTJlPboiPP1VknLSEMJ0qXEUu82Gs0Eosi7lkohLhZh/Og0/Bh10e2\nJMDvZN4Faqrbs43+KyeDtuMgZjFNZuTiYKXXMuw2wb6GI98byBeZHASdOk2Z+8Jm\nhs3nOMFFAgMBAAECggEAGxROvewX+aS7IwmqUXaruZhgoCIEuu2f6lfGvRA3iYQc\nN2zStzR5hzD3mwAxqraSRhGwN9B3Jy4xr0luNV7d1n7XdK8vC8PM1O7mQPpDyG6q\nBlcb7oPb1NnZgZhDv12IiwZ4IF/pLsclH1mp7Qs3s1L/I1cT58+6PZ3ULymPtoZq\n5ROFhI1Nya5OrSyuIGCbdSUbByCiteWLORwddUuMMZG8oD16ObxqfV8x6I/cd9BI\nDR00h4brtS2Va4hwKXP3SYkduk/K3eqDMnrIIbioEjfWlTf2/Eq/modTaj4ynVIw\nL9qJIjiXqV58Pl29K7YgxWJ1Y/HV/dpxUR0DF4kmyQKBgQDIt88SLaIbRAjF5DmX\nN5lC3Z7UL0WowgXAzjC5M04F96fQf34T2Q7RCFbkPcm9nbsJ+mMLfw40G2BYNdzv\n1l4qqlHPakNF03aqZzC/uPMsbakXABIgJJhMcgs17kqWmDOwzUGJRfWClHAjtf7R\nTffszhBlxyosGaI6FsFATgCRjQKBgQC2TOaMo+ZIx4pwJ+cALPkEi5OmfKhrRu0U\nQYgEXvdgw8Z9ChiUENnCtZAMaePxIDvVXnHWOniuXC2sfkzK9IgCrUfQ6tbjUEh/\nzdPKsBxpOxmgVKscOkndUNs6ca0n59ZK88r5cGVLsoLj3G2o8jlKA49lSFriHLVx\n040I2P3UmQKBgQDH5ObAf9nVtafXDTedta1YvkYToxCIxNHd9nrntoSZxM7IAnCZ\na64p11hR7ocf5BoGEerZ5CtNEYad0ua5pJAbhYv8OSPOQo8HncUa6yKiuIOReGyU\nvl0+pMUtbKez2th/16rQ/29GIHad2f5wjGnA2GfUNMl3KgA6QbcsR4KhcQKBgBhb\nJeJcc4P9xO0/J4nKeGq3Cz8PIKFUlJBEQRv0ZDC1d2t1UdtWdQGiqGBANYgdumDD\ngYoRvdXt0txc832aNiHFbPboqVUtgMIyib1m0iTtFHtrVIEs+HltOB0S2wOd4e+Z\nquCwt5fpfbtb0/rigez1lM7/X8Ud+NAAZ7Nq6l7hAoGBAKZQIns6ZvStlqpAQ0Rz\ngIXMa+ppx3aZTWNmCiIMzjzTCZf6u4GOuXuewk00ys/M1pNn7iYtzgF0DSUnYyhi\nbArKCSHzeNRVWFH4EH3yTjXd2zOJ8QcCGkHJGq3DYzyitFlJLUBHD3S1xNwBDhCe\n1SHMDaTCFto+98f0iMTEto3G\n-----END PRIVATE KEY-----\n",
-            "client_email": "python-connector@python-rate-sheet.iam.gserviceaccount.com",
-            "client_id": "117453940853777693588",
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/python-connector%40python-rate-sheet.iam.gserviceaccount.com"
+            creds go here
         }
