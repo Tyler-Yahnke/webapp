@@ -13,18 +13,18 @@ def create_app():
     application = Flask(__name__)
 
     #Setting up connection to DB
-    application.config['SECRET_KEY'] = '54ge5rg4e4eshg4ser324243thg4s5h4esr8t674'
-    application.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://ebroot:Yamaha189!@awseb-e-rvvktpucyf-stack-awsebrdsdatabase-ijbluxt9ye2s.cavhriuewzv4.us-east-1.rds.amazonaws.com:3306/ebdb'
+    application.config['SECRET_KEY'] = ''
+    application.config['SQLALCHEMY_DATABASE_URI'] = ''
     application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     application.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=90)  # Set session to 1.5 hour
-    application.config['UPLOAD_FOLDER']= '/Users/tyleryahnke/PycharmProjects/webapp/Test'
+    application.config['UPLOAD_FOLDER']= ''
 
     #creating mail server
-    application.config['MAIL_SERVER'] = 'email-smtp.us-east-1.amazonaws.com'
+    application.config['MAIL_SERVER'] = ''
     application.config['MAIL_PORT'] = 587
     application.config['MAIL_USE_TLS'] = True
-    application.config['MAIL_USERNAME'] = 'AKIAT6OFV5CDXO7VJOVE'
-    application.config['MAIL_PASSWORD'] = 'BD5UWiIMuiJtY1SHSKRCIBF2NOe0ZrbRhJq2QK+lOVgr'
+    application.config['MAIL_USERNAME'] = ''
+    application.config['MAIL_PASSWORD'] = ''
 
     mail = Mail(application)
 
